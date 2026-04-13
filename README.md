@@ -116,7 +116,7 @@ src/
 │   ├── constants.ts                # Vault config, token addresses, chain IDs
 │   └── format.ts                   # USD, APY, shares formatters
 └── providers/
-    └── index.tsx                   # Provider stack (Privy → SmartWallets → Query → wagmi → YO)
+    └── index.tsx                   # Provider stack (Privy → SmartWallets → Query → wagmi)
 ```
 
 ## Getting started
@@ -172,6 +172,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 - **Desktop**: The full-screen “mobile only” overlay runs in **production** only. In `next dev`, you can exercise `/app` on desktop without `NEXT_PUBLIC_DISABLE_DESKTOP_BLOCKER`. For production desktop testing, set `NEXT_PUBLIC_DISABLE_DESKTOP_BLOCKER=1` in `.env.local`.
 - **Privy + Solana**: This app is **EVM-only** (`walletChainType: "ethereum-only"`). If the browser console shows *Solana wallet login enabled but no connectors*, turn **off** Solana wallet login in the [Privy dashboard](https://dashboard.privy.io/) for this app. Importing `@privy-io/react-auth/solana` here would require extra Solana packages (for example `@solana-program/memo`) even though the product does not use Solana.
+- **Privy + Add funds (MoonPay)**: The **Add** button calls `fundWallet`. That requires **Account funding** (card / on-ramp, etc.) to be enabled for your app in the [Privy dashboard](https://dashboard.privy.io/). If it is not enabled, the app opens **Receive** instead so the user can copy the address and send USDC from another wallet.
 - **Signed-in flows** (swap, swap+deposit, deposit, withdraw, chat tool approvals): require a real Privy session and funded smart wallet on Base; confirm in browser devtools that `/api/swap-quote`, `/api/vaults/tx-plan/*`, and `/api/vaults/preview/*` return 200 when exercising each path.
 
 ## Provider stack

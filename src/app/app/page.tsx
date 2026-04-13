@@ -48,14 +48,23 @@ export default function DashboardPage() {
   const handleSendSuccess = () => handleTransactionSuccess(() => setSendOpen(false));
 
   const handleAddFunds = useCallback(() => {
-    if (walletAddress) fundWallet({
-      address: walletAddress,
-      options: {
-        chain: base,
-        asset: "USDC",
-        card: { preferredProvider: "moonpay" },
-      },
-    });
+    if (!walletAddress) return;
+    void (async () => {
+      try {
+        await fundWallet({
+          address: walletAddress,
+          options: {
+            chain: base,
+            asset: "USDC",
+            card: { preferredProvider: "moonpay" },
+          },
+        });
+      } catch {
+        // Card/on-ramp requires "Account funding" enabled in the Privy dashboard.
+        // Fall back to address + QR so users can deposit from another wallet.
+        setReceiveOpen(true);
+      }
+    })();
   }, [walletAddress, fundWallet]);
 
   const mappedActivities = useMemo(
