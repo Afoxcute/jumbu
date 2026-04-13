@@ -72,7 +72,7 @@ export const TOKEN_DISPLAY_NAMES: Record<string, string> = {
   WETH: "ETH", cbBTC: "BTC", EURC: "EUR",
 };
 
-export const NARRATION_CACHE_KEY = "yoyo:narration-cache";
+export const NARRATION_CACHE_KEY = "jumbu:narration-cache";
 
 /** Known token addresses on Base */
 export const TOKEN_ADDRESSES: Record<string, string> = {

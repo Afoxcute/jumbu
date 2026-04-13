@@ -4,7 +4,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-const PENDING_KEY = "yoyo:pending-redirect";
+const PENDING_KEY = "jumbu:pending-redirect";
 
 export function useHandleLogin() {
   const router = useRouter();

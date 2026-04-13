@@ -282,7 +282,7 @@ export function HeroSection() {
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
         transition={{ duration: 0.6 }}
         className="absolute inset-x-0 top-0 flex justify-center pt-6">
-        <span className="font-display text-4xl text-ink">yoyo</span>
+        <span className="font-display text-4xl text-ink">jumbu</span>
       </motion.div>
 
       {/* Content — fixed top offset so morph doesn't cause reflow */}

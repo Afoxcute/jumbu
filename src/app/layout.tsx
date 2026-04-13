@@ -30,7 +30,7 @@ const showDesktopBlocker =
   process.env.NEXT_PUBLIC_DISABLE_DESKTOP_BLOCKER !== "1";
 
 export const metadata: Metadata = {
-  title: "yoyo — Onchain Savings Made Easy",
+  title: "jumbu — Onchain Savings Made Easy",
   description:
     "Earn on your savings with smart LI.FI routing. No fees. Withdraw anytime.",
   manifest: "/manifest.json",
@@ -39,14 +39,14 @@ export const metadata: Metadata = {
     apple: "/apple-touch-icon.png",
   },
   openGraph: {
-    title: "yoyo — Onchain Savings Made Easy",
+    title: "jumbu — Onchain Savings Made Easy",
     description: "Earn up to 12% on your savings. No fees. Withdraw anytime.",
     type: "website",
   },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "yoyo",
+    title: "jumbu",
   },
 };
 
@@ -72,7 +72,7 @@ export default function RootLayout({
         <Providers>{children}</Providers>
         {showDesktopBlocker && (
           <div className="pointer-events-none fixed inset-0 z-[9999] hidden flex-col items-center justify-center gap-4 bg-[#FFFEF2] md:flex">
-            <span className="font-display text-[3rem] tracking-tight text-[#1A1A18]">yoyo</span>
+            <span className="font-display text-[3rem] tracking-tight text-[#1A1A18]">jumbu</span>
             <p className="font-body text-base text-[#6B6B5E]">designed for mobile — open on your phone</p>
           </div>
         )}

@@ -2,7 +2,7 @@
   "lockfileVersion": 1,
   "workspaces": {
     "": {
-      "name": "yoyo",
+      "name": "jumbu",
       "dependencies": {
         "@ai-sdk/deepseek": "^2.0.24",
         "@ai-sdk/react": "^3.0.118",

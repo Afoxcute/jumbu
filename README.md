@@ -1,10 +1,10 @@
-# yoyo
+# jumbu
 
 **Onchain savings made easy.**
 
-yoyo is a mobile savings app that lets anyone earn yield on their money without understanding crypto. Powered by LI.FI routing and vault adapters, it replaces the complexity of DeFi with a single AI chat interface. Just tell yoyo what you're saving for, and it handles everything.
+jumbu is a mobile savings app that lets anyone earn yield on their money without understanding crypto. Powered by LI.FI routing and vault adapters, it replaces the complexity of DeFi with a single AI chat interface. Just tell jumbu what you're saving for, and it handles everything.
 
-**[Live App](https://yoyo.s0nderlabs.xyz)** · **[Demo Video](https://www.youtube.com/watch?v=lt3f9EXybj8&t=3s)**
+**[Repository](https://github.com/Afoxcute/jumbu)** · **[Demo Video](https://www.youtube.com/watch?v=lt3f9EXybj8&t=3s)**
 
 ---
 
@@ -13,7 +13,7 @@ yoyo is a mobile savings app that lets anyone earn yield on their money without 
 1. **Sign up with email or Google.** No wallet, no seed phrases. A gasless smart account (ERC-4337) is created behind the scenes. All transactions are gas-sponsored — users never pay gas fees.
 2. **Fund your account** via MoonPay (card, Apple Pay, Google Pay) or receive tokens from an external wallet.
 3. **Talk to the AI.** Say "I want to save for a trip to Japan" and the AI checks rates, recommends the best vault, sets a savings goal, and presents a one-tap deposit confirmation.
-4. **Earn automatically.** LI.FI routes deposits into vault assets and yoyo handles the vault transaction flow. Zero management fees, zero performance fees.
+4. **Earn automatically.** LI.FI routes deposits into vault assets and jumbu handles the vault transaction flow. Zero management fees, zero performance fees.
 5. **Withdraw anytime.** No lock-ups, no penalties.
 
 ## Features
@@ -30,7 +30,7 @@ yoyo is a mobile savings app that lets anyone earn yield on their money without 
 
 ## LI.FI + vault integration
 
-yoyo uses LI.FI quotes/routes for swap and bridge execution, then submits ERC-4626 vault actions through Privy smart wallets.
+jumbu uses LI.FI quotes/routes for swap and bridge execution, then submits ERC-4626 vault actions through Privy smart wallets.
 
 **Supported vaults:**
 
@@ -131,8 +131,8 @@ src/
 ### Setup
 
 ```bash
-git clone https://github.com/s0nderlabs/yoyo.git
-cd yoyo
+git clone https://github.com/Afoxcute/jumbu.git
+cd jumbu
 bun install
 ```
 

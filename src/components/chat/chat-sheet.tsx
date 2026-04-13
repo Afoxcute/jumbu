@@ -140,7 +140,7 @@ export function ChatSheet({ visible }: ChatSheetProps) {
           visible ? "translate-y-0" : "translate-y-full"
         }`}
       >
-        {/* Fix 5: Centered yoyo logo, tappable to close */}
+        {/* Fix 5: Centered jumbu logo, tappable to close */}
         <div className="flex-none px-5 pt-3 pb-2">
           <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
           <div className="flex justify-center">
@@ -148,7 +148,7 @@ export function ChatSheet({ visible }: ChatSheetProps) {
               onClick={close}
               className="font-display text-lg text-ink transition-opacity hover:opacity-60"
             >
-              yoyo
+              jumbu
             </button>
           </div>
         </div>

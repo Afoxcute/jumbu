@@ -40,7 +40,7 @@ export interface DashboardData {
   refetchBalances: () => Promise<unknown>;
 }
 
-const CACHE_KEY = "yoyo:dashboard-cache";
+const CACHE_KEY = "jumbu:dashboard-cache";
 
 function readCache(): DashboardCache | null {
   if (typeof window === "undefined") return null;

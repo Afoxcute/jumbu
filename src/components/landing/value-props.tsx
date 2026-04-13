@@ -207,7 +207,7 @@ export function ValueProps() {
         transition={{ duration: 0.6, ease }}
         className="font-display italic text-2xl text-sage/70 text-balance"
       >
-        Why yoyo
+        Why jumbu
       </motion.p>
 
       <div className="mt-10 flex flex-col gap-10">
