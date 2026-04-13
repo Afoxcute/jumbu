@@ -4,17 +4,13 @@ import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import type { Address } from "viem";
-import type { VaultStatsItem, UserVaultPosition } from "@yo-protocol/core";
-import {
-  usePreviewRedeem,
-  useShareBalance,
-} from "@yo-protocol/react";
 import { usePrivy } from "@privy-io/react-auth";
 import { useVaultRedeem } from "@/hooks/use-vault-tx";
 import { formatUsd, formatShares, assetsToUsd, getPrice } from "@/lib/format";
 import { logActivity } from "@/lib/activity";
 import { VAULT_FRIENDLY_NAMES } from "@/lib/constants";
 import { useChatSheet } from "@/contexts/chat-context";
+import type { VaultStatsItem, UserVaultPosition } from "@/lib/vaults/types";
 
 interface WithdrawSheetProps {
   vault: VaultStatsItem;
@@ -37,8 +33,7 @@ export function WithdrawSheet({
 
   const vaultAddress = vault.contracts.vaultAddress as Address;
 
-  const { shares: shareBalance } = useShareBalance(vaultAddress, walletAddress);
-  const totalShares = shareBalance || position.shares;
+  const totalShares = position.shares;
 
   const redeemShares = useMemo(() => {
     if (sliderValue === 0 || !totalShares) return 0n;
@@ -46,11 +41,22 @@ export function WithdrawSheet({
     return (totalShares * BigInt(sliderValue)) / 100n;
   }, [sliderValue, totalShares]);
 
-  const { assets: previewAssets } = usePreviewRedeem(
-    vaultAddress,
-    redeemShares,
-    { enabled: redeemShares > 0n },
-  );
+  const [previewAssets, setPreviewAssets] = useState<bigint>(0n);
+
+  useEffect(() => {
+    if (redeemShares <= 0n) {
+      setPreviewAssets(0n);
+      return;
+    }
+    const params = new URLSearchParams({
+      vaultAddress,
+      shares: redeemShares.toString(),
+    });
+    fetch(`/api/vaults/preview/redeem?${params}`)
+      .then((res) => res.json())
+      .then((json) => setPreviewAssets(json.assets ? BigInt(json.assets) : 0n))
+      .catch(() => setPreviewAssets(0n));
+  }, [vaultAddress, redeemShares]);
 
   const { redeem, step, isLoading, isSuccess, hash, instant, reset } =
     useVaultRedeem({

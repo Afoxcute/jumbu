@@ -7,13 +7,12 @@ import {
   DEFAULT_CHAIN_ID,
   BASE_TOKENS,
   BASE_TOKEN_DECIMALS,
-  ALLOWANCE_HOLDER,
 } from "@/lib/constants";
 import { formatApy } from "@/lib/format";
 import { db } from "@/lib/db";
 import { goals } from "@/lib/db/schema";
-
-const YO_API = "https://api.yo.xyz/api/v1";
+import { VAULT_CATALOG } from "@/lib/vaults/catalog";
+import { getWalletSnapshot } from "@/lib/vaults/snapshot";
 
 export function createTools(walletAddress?: string, userId?: string) {
   return {
@@ -22,18 +21,15 @@ export function createTools(walletAddress?: string, userId?: string) {
         "Get current interest rates for all savings accounts on Base chain",
       inputSchema: z.object({}),
       execute: async () => {
-        const res = await fetch(`${YO_API}/vault/stats`);
-        const json = await res.json();
-        const vaults = (json as any).data || [];
-        const baseVaults = vaults.filter(
-          (v: any) => v.chain?.id === DEFAULT_CHAIN_ID,
+        const baseVaults = VAULT_CATALOG.filter(
+          (v) => v.chain.id === DEFAULT_CHAIN_ID,
         );
-        return baseVaults.map((v: any) => ({
+        return baseVaults.map((v) => ({
           name: VAULT_FRIENDLY_NAMES[v.id] || v.name,
           id: v.id,
-          symbol: v.asset?.symbol,
+          symbol: v.asset.symbol,
           apy: formatApy(v.yield?.["7d"]),
-          tvl: v.tvl?.formatted || v.tvl || "N/A",
+          tvl: v.tvl?.formatted || "N/A",
         }));
       },
     }),
@@ -44,19 +40,14 @@ export function createTools(walletAddress?: string, userId?: string) {
       inputSchema: z.object({}),
       execute: async () => {
         if (!walletAddress) return { error: "No wallet connected" };
-        const res = await fetch(
-          `${YO_API}/user/balance/${walletAddress}`,
-        );
-        const json = await res.json();
-        const balanceData = (json as any).data || json;
+        const snapshot = await getWalletSnapshot(walletAddress as `0x${string}`);
         return {
-          totalUsd: balanceData.totalBalanceUsd,
-          tokens:
-            (balanceData.assets || []).map((b: any) => ({
-              symbol: b.symbol,
-              balance: b.balance,
-              usd: b.balanceUsd,
-            })),
+          totalUsd: snapshot.walletBalanceUsd,
+          tokens: snapshot.walletAssets.map((b) => ({
+            symbol: b.symbol,
+            balance: b.balance,
+            usd: b.balanceUsd,
+          })),
         };
       },
     }),
@@ -67,24 +58,16 @@ export function createTools(walletAddress?: string, userId?: string) {
       inputSchema: z.object({}),
       execute: async () => {
         if (!walletAddress) return { error: "No wallet connected" };
-        const [posRes, vaultRes] = await Promise.all([
-          fetch(`${YO_API}/user/positions/${walletAddress}`),
-          fetch(`${YO_API}/vault/stats`),
-        ]);
-        const posJson = await posRes.json();
-        const vaultJson = await vaultRes.json();
-        const vaults = ((vaultJson as any).data || []) as any[];
+        const snapshot = await getWalletSnapshot(walletAddress as `0x${string}`);
         const apyMap = Object.fromEntries(
-          vaults.map((v: any) => [v.id, v.yield?.["7d"]]),
+          VAULT_CATALOG.map((v) => [v.id, v.yield?.["7d"] || "0"]),
         );
-        const positions = ((posJson as any).data || [])
-          .filter((p: any) => p.chainId === DEFAULT_CHAIN_ID)
-          .map((p: any) => ({
-            vaultName: VAULT_FRIENDLY_NAMES[p.vaultId] || p.vaultName,
-            vaultId: p.vaultId,
-            deposited: p.position?.assets?.formatted,
-            tokenSymbol: p.asset?.symbol,
-            apy: apyMap[p.vaultId] ? formatApy(apyMap[p.vaultId]) : "N/A",
+        const positions = snapshot.positions.map((p) => ({
+          vaultName: VAULT_FRIENDLY_NAMES[p.vault.id] || p.vault.name,
+          vaultId: p.vault.id,
+          deposited: (Number(p.position.assets) / 10 ** p.vault.asset.decimals).toFixed(6),
+          tokenSymbol: p.vault.asset.symbol,
+          apy: formatApy(apyMap[p.vault.id]),
           }));
         return positions.length > 0
           ? positions
@@ -135,28 +118,33 @@ export function createTools(walletAddress?: string, userId?: string) {
           slippageBps: "100",
         });
 
-        const res = await fetch(
-          `https://api.0x.org/swap/allowance-holder/quote?${params}`,
-          {
-            headers: {
-              "0x-api-key": process.env.ZERO_X_API_KEY!,
-              "0x-version": "v2",
-            },
-          },
-        );
+        const res = await fetch(`https://li.quest/v1/quote?${new URLSearchParams({
+          fromChain: String(DEFAULT_CHAIN_ID),
+          toChain: String(DEFAULT_CHAIN_ID),
+          fromToken: sellAddr,
+          toToken: buyAddr,
+          fromAmount: sellAmountWei,
+          fromAddress: taker,
+          toAddress: taker,
+          slippage: "0.01",
+        })}`, {
+          headers: process.env.LIFI_API_KEY
+            ? { "x-lifi-api-key": process.env.LIFI_API_KEY }
+            : undefined,
+        });
 
         const quote = await res.json();
-        if (!res.ok || quote.code) {
+        if (!res.ok) {
           return {
             error:
-              quote.reason || quote.message || "Failed to get swap quote",
+              quote.error || quote.message || "Failed to get swap quote",
           };
         }
 
         const buyAmount =
-          Number(quote.buyAmount) / 10 ** buyDecimals;
+          Number(quote.estimate?.toAmount) / 10 ** buyDecimals;
         const minBuyAmount =
-          Number(quote.minBuyAmount) / 10 ** buyDecimals;
+          Number(quote.estimate?.toAmountMin || quote.estimate?.toAmount) / 10 ** buyDecimals;
 
         return {
           sellToken: sellSym,

@@ -9,7 +9,7 @@ import {
   useTransform,
   animate,
 } from "framer-motion";
-import { useVaults } from "@yo-protocol/react";
+import { useLifiVaults } from "@/lib/vaults/service";
 
 /* ── Data ─────────────────────────────────────────────────── */
 
@@ -192,7 +192,7 @@ function StatRow({
 export function ValueProps() {
   const sectionRef = useRef<HTMLElement>(null);
   const isInView = useInView(sectionRef, { once: true, amount: 0.35 });
-  const { vaults } = useVaults();
+  const { vaults } = useLifiVaults();
   const maxApy = useMemo(() => {
     if (!vaults?.length) return 12;
     const apys = vaults.map((v) => parseFloat(v.yield?.["7d"] ?? "0")).filter((n) => !isNaN(n));

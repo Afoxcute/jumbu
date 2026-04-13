@@ -10,6 +10,7 @@
   "dependencies": {
     "@ai-sdk/deepseek": "^2.0.24",
     "@ai-sdk/react": "^3.0.118",
+    "@lifi/sdk": "^3.16.3",
     "@neondatabase/serverless": "^1.0.2",
     "@privy-io/react-auth": "^3.17.0",
     "@privy-io/server-auth": "^1.32.5",
@@ -17,9 +18,6 @@
     "@serwist/next": "^9.5.6",
     "@tanstack/react-query": "^5.90.0",
     "@vercel/postgres": "^0.10.0",
-    "@yo-protocol/react": "^1.0.6",
-    "@zerodev/ecdsa-validator": "^5.4.9",
-    "@zerodev/sdk": "^5.5.7",
     "ai": "^6.0.116",
     "drizzle-orm": "^0.45.1",
     "framer-motion": "^12.35.0",

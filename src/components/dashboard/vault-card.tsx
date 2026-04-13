@@ -1,8 +1,8 @@
 "use client";
 
-import type { VaultStatsItem } from "@yo-protocol/core";
 import { formatApy } from "@/lib/format";
 import { VAULT_FRIENDLY_NAMES, VAULT_ACCENTS, VAULT_LOGOS } from "@/lib/constants";
+import type { VaultStatsItem } from "@/lib/vaults/types";
 
 interface VaultCardProps {
   vault: VaultStatsItem;

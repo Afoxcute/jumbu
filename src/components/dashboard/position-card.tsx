@@ -1,8 +1,8 @@
 "use client";
 
-import type { VaultStatsItem, UserVaultPosition } from "@yo-protocol/core";
 import { formatUsd, formatApy, assetsToUsd, getPrice } from "@/lib/format";
 import { VAULT_FRIENDLY_NAMES, VAULT_ACCENTS } from "@/lib/constants";
+import type { VaultStatsItem, UserVaultPosition } from "@/lib/vaults/types";
 
 interface PositionCardProps {
   vault: VaultStatsItem;

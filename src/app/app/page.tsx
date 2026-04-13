@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { AnimatePresence } from "framer-motion";
-import type { VaultStatsItem } from "@yo-protocol/core";
 import { usePrivy, useFundWallet } from "@privy-io/react-auth";
 import { base } from "viem/chains";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
+import type { VaultStatsItem } from "@/lib/vaults/types";
 import { useActivities } from "@/hooks/use-activities";
 import { useAppGoals } from "@/contexts/goals-context";
 import { useChatSheet } from "@/contexts/chat-context";

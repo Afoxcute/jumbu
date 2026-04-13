@@ -2,11 +2,11 @@
 
 import { usePrivy } from "@privy-io/react-auth";
 import { motion } from "framer-motion";
-import type { VaultStatsItem } from "@yo-protocol/core";
 import type { DashboardData } from "@/hooks/use-dashboard-data";
 import type { ActivityItem } from "./activity-list";
 import { useChatSheet } from "@/contexts/chat-context";
 import { formatUsd, formatApy } from "@/lib/format";
+import type { VaultStatsItem } from "@/lib/vaults/types";
 import { VaultCard } from "./vault-card";
 import { PositionCard } from "./position-card";
 import { ActivityList } from "./activity-list";

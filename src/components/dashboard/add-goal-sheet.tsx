@@ -3,10 +3,10 @@
 import { useState, useLayoutEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
-import type { VaultStatsItem } from "@yo-protocol/core";
 import { VAULT_FRIENDLY_NAMES } from "@/lib/constants";
 import { formatApy } from "@/lib/format";
 import { useChatSheet } from "@/contexts/chat-context";
+import type { VaultStatsItem } from "@/lib/vaults/types";
 
 interface AddGoalSheetProps {
   vault: VaultStatsItem;

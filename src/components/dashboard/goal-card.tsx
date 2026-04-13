@@ -1,8 +1,8 @@
 "use client";
 
-import type { VaultStatsItem } from "@yo-protocol/core";
 import { formatUsd, formatApy } from "@/lib/format";
 import { VAULT_FRIENDLY_NAMES, VAULT_ACCENTS } from "@/lib/constants";
+import type { VaultStatsItem } from "@/lib/vaults/types";
 
 interface GoalCardProps {
   goal: { name: string; targetUsd: number };

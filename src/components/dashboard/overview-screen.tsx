@@ -3,8 +3,8 @@
 import { useMemo, useRef, useState, useCallback, useEffect } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { motion, AnimatePresence } from "framer-motion";
-import type { VaultStatsItem } from "@yo-protocol/core";
 import type { DashboardData } from "@/hooks/use-dashboard-data";
+import type { VaultStatsItem } from "@/lib/vaults/types";
 import { useChatSheet } from "@/contexts/chat-context";
 import { useAppGoals } from "@/contexts/goals-context";
 import { formatUsd, formatApy } from "@/lib/format";

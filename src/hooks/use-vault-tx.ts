@@ -4,22 +4,22 @@ import { useState, useCallback } from "react";
 import type { Address, Hex } from "viem";
 import { useSmartWallets } from "@privy-io/react-auth/smart-wallets";
 import { usePrivy } from "@privy-io/react-auth";
-import { useYoClient } from "@yo-protocol/react";
 
 type Step = "idle" | "processing" | "success" | "error";
 
 export function useVaultDeposit({
   vault,
+  vaultAssetToken,
   onConfirmed,
   onError,
 }: {
   vault: Address;
+  vaultAssetToken: Address;
   onConfirmed?: (hash: Hex) => void;
   onError?: (err: Error) => void;
 }) {
   const { client } = useSmartWallets();
   const { user } = usePrivy();
-  const yoClient = useYoClient();
   const [step, setStep] = useState<Step>("idle");
   const [hash, setHash] = useState<Hex | undefined>();
 
@@ -35,19 +35,27 @@ export function useVaultDeposit({
       amount: bigint;
       chainId?: number;
     }) => {
-      if (!client || !walletAddress || !yoClient) return;
+      if (!client || !walletAddress) return;
       setStep("processing");
       try {
-        const txs = await yoClient.prepareDepositWithApproval({
-          vault,
-          token,
-          owner: walletAddress,
-          recipient: walletAddress,
-          amount,
-          slippageBps: 50,
+        const planRes = await fetch("/api/vaults/tx-plan/deposit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            walletAddress,
+            vaultAddress: vault,
+            vaultAssetToken,
+            fromToken: token,
+            amount: amount.toString(),
+          }),
         });
+        const plan = await planRes.json();
+        if (!planRes.ok || !Array.isArray(plan.calls)) {
+          throw new Error(plan.error || "Failed to build deposit transaction");
+        }
+
         const txHash = await client.sendTransaction({
-          calls: txs.map((tx) => ({
+          calls: plan.calls.map((tx: { to: string; data: string; value?: string }) => ({
             to: tx.to as Address,
             data: tx.data as Hex,
             value: tx.value ? BigInt(tx.value) : undefined,
@@ -65,7 +73,7 @@ export function useVaultDeposit({
         );
       }
     },
-    [client, walletAddress, vault, yoClient, onConfirmed, onError],
+    [client, walletAddress, vault, vaultAssetToken, onConfirmed, onError],
   );
 
   const reset = useCallback(() => {
@@ -94,7 +102,6 @@ export function useVaultRedeem({
 }) {
   const { client } = useSmartWallets();
   const { user } = usePrivy();
-  const yoClient = useYoClient();
   const [step, setStep] = useState<Step>("idle");
   const [hash, setHash] = useState<Hex | undefined>();
 
@@ -103,17 +110,25 @@ export function useVaultRedeem({
 
   const redeem = useCallback(
     async (shares: bigint) => {
-      if (!client || !walletAddress || !yoClient) return;
+      if (!client || !walletAddress) return;
       setStep("processing");
       try {
-        const txs = await yoClient.prepareRedeemWithApproval({
-          vault,
-          shares,
-          owner: walletAddress,
-          recipient: walletAddress,
+        const planRes = await fetch("/api/vaults/tx-plan/redeem", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            walletAddress,
+            vaultAddress: vault,
+            shares: shares.toString(),
+          }),
         });
+        const plan = await planRes.json();
+        if (!planRes.ok || !Array.isArray(plan.calls)) {
+          throw new Error(plan.error || "Failed to build redeem transaction");
+        }
+
         const txHash = await client.sendTransaction({
-          calls: txs.map((tx) => ({
+          calls: plan.calls.map((tx: { to: string; data: string; value?: string }) => ({
             to: tx.to as Address,
             data: tx.data as Hex,
             value: tx.value ? BigInt(tx.value) : undefined,
@@ -131,7 +146,7 @@ export function useVaultRedeem({
         );
       }
     },
-    [client, walletAddress, vault, yoClient, onConfirmed, onError],
+    [client, walletAddress, vault, onConfirmed, onError],
   );
 
   const reset = useCallback(() => {

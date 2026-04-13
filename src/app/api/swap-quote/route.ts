@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
   const buyToken = sp.get("buyToken");
   const sellAmount = sp.get("sellAmount");
   const taker = sp.get("taker");
+  const toChain = sp.get("toChain");
 
   if (!sellToken || !buyToken || !sellAmount || !taker) {
     return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
@@ -26,24 +27,35 @@ export async function GET(req: NextRequest) {
   }
 
   const params = new URLSearchParams({
-    chainId: String(DEFAULT_CHAIN_ID),
-    sellToken,
-    buyToken,
-    sellAmount,
-    taker,
-    slippageBps: "100",
+    fromChain: String(DEFAULT_CHAIN_ID),
+    toChain: toChain || String(DEFAULT_CHAIN_ID),
+    fromToken: sellToken,
+    toToken: buyToken,
+    fromAmount: sellAmount,
+    fromAddress: taker,
+    toAddress: taker,
+    slippage: "0.01",
   });
 
-  const res = await fetch(
-    `https://api.0x.org/swap/allowance-holder/quote?${params}`,
-    {
-      headers: {
-        "0x-api-key": process.env.ZERO_X_API_KEY!,
-        "0x-version": "v2",
-      },
-    },
-  );
+  const headers: HeadersInit = {};
+  if (process.env.LIFI_API_KEY) headers["x-lifi-api-key"] = process.env.LIFI_API_KEY;
 
-  const data = await res.json();
-  return NextResponse.json(data, { status: res.ok ? 200 : 502 });
+  const res = await fetch(`https://li.quest/v1/quote?${params}`, {
+    headers,
+    cache: "no-store",
+  });
+  const quote = await res.json();
+  if (!res.ok) {
+    return NextResponse.json(
+      { error: quote.message || quote.error || "Failed to get LI.FI quote" },
+      { status: 502 },
+    );
+  }
+
+  return NextResponse.json({
+    tool: quote.tool,
+    buyAmount: quote.estimate?.toAmount,
+    minBuyAmount: quote.estimate?.toAmountMin,
+    transaction: quote.transactionRequest,
+  });
 }

@@ -2,33 +2,21 @@
 
 import { useMemo, useEffect, useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
-import {
-  useVaults,
-  useUserPositions,
-  useUserBalances,
-  usePrices,
-} from "@yo-protocol/react";
-import type { VaultStatsItem, UserVaultPosition } from "@yo-protocol/core";
 import type { Address } from "viem";
 import { DEFAULT_CHAIN_ID, VAULT_DISPLAY_ORDER } from "@/lib/constants";
 import { assetsToUsd, getPrice } from "@/lib/format";
-
-export interface TypedPosition {
-  vault: VaultStatsItem;
-  position: UserVaultPosition;
-}
+import { useVaultsCatalog, useWalletSnapshot } from "@/lib/vaults/service";
+import type {
+  TypedPosition,
+  VaultStatsItem,
+  WalletAsset,
+} from "@/lib/vaults/types";
 
 export interface DashboardCache {
   totalSavingsUsd: number;
   walletBalanceUsd: number;
   positionVaultIds: string[];
   timestamp: number;
-}
-
-export interface WalletAsset {
-  symbol: string;
-  balance: string;
-  balanceUsd: string;
 }
 
 export interface DashboardData {
@@ -68,18 +56,12 @@ export function useDashboardData(): DashboardData {
   const { user } = usePrivy();
   const walletAddress = (user?.smartWallet?.address ?? user?.wallet?.address) as Address | undefined;
 
-  const { vaults = [], isLoading: vaultsLoading } = useVaults();
-  const {
-    positions: rawPositions = [],
-    isLoading: positionsLoading,
-    refetch: refetchPositions,
-  } = useUserPositions(walletAddress, { enabled: !!walletAddress });
-  const {
-    balances,
-    isLoading: balancesLoading,
-    refetch: refetchBalances,
-  } = useUserBalances(walletAddress, { enabled: !!walletAddress });
-  const { prices = {} } = usePrices();
+  const vaultQuery = useVaultsCatalog();
+  const snapshotQuery = useWalletSnapshot(walletAddress);
+  const vaults = vaultQuery.data ?? [];
+  const snapshot = snapshotQuery.data;
+  const prices = snapshot?.prices ?? {};
+  const refetchSnapshot = async () => snapshotQuery.refetch();
 
   const [cache] = useState<DashboardCache | null>(readCache);
 
@@ -94,14 +76,10 @@ export function useDashboardData(): DashboardData {
     });
   }, [vaults]);
 
-  const positions = useMemo(() => {
-    return rawPositions
-      .map((p: { vault: unknown; position: UserVaultPosition }) => ({
-        vault: p.vault as VaultStatsItem,
-        position: p.position,
-      }))
-      .filter((p) => p.position.assets > 0n);
-  }, [rawPositions]);
+  const positions = useMemo(
+    () => (snapshot?.positions ?? []).filter((p) => p.position.assets > 0n),
+    [snapshot?.positions],
+  );
 
   const totalSavingsUsd = useMemo(() => {
     return positions.reduce((sum, p) => {
@@ -110,22 +88,15 @@ export function useDashboardData(): DashboardData {
     }, 0);
   }, [positions, prices]);
 
-  const walletBalanceUsd = balances?.totalBalanceUsd
-    ? parseFloat(balances.totalBalanceUsd)
-    : 0;
+  const walletBalanceUsd = snapshot?.walletBalanceUsd ?? 0;
 
-  const walletAssets = useMemo(() => {
-    const raw = (balances as any)?.assets || [];
-    return raw
-      .filter((a: any) => a.balanceUsd && parseFloat(a.balanceUsd) > 0.01)
-      .map((a: any) => ({
-        symbol: a.symbol as string,
-        balance: a.balance as string,
-        balanceUsd: a.balanceUsd as string,
-      }));
-  }, [balances]);
+  const walletAssets = useMemo(
+    () => (snapshot?.walletAssets ?? []).filter((a) => parseFloat(a.balanceUsd) > 0.01),
+    [snapshot?.walletAssets],
+  );
 
-  const userLoading = positionsLoading || balancesLoading;
+  const vaultsLoading = vaultQuery.isLoading;
+  const userLoading = snapshotQuery.isLoading;
 
   // Write to cache when fresh data arrives
   useEffect(() => {
@@ -164,8 +135,8 @@ export function useDashboardData(): DashboardData {
 
       cache,
 
-      refetchPositions,
-      refetchBalances,
+      refetchPositions: refetchSnapshot,
+      refetchBalances: refetchSnapshot,
     }),
     [
       baseVaults,
@@ -179,8 +150,7 @@ export function useDashboardData(): DashboardData {
       userLoading,
       prices,
       cache,
-      refetchPositions,
-      refetchBalances,
+      refetchSnapshot,
     ],
   );
 }

@@ -5,17 +5,13 @@ import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { parseUnits } from "viem";
 import type { Address } from "viem";
-import type { VaultStatsItem } from "@yo-protocol/core";
-import {
-  useTokenBalance,
-  usePreviewDeposit,
-} from "@yo-protocol/react";
 import { usePrivy } from "@privy-io/react-auth";
 import { useVaultDeposit } from "@/hooks/use-vault-tx";
 import { formatUsd, formatApy, formatShares, getPrice } from "@/lib/format";
 import { logActivity } from "@/lib/activity";
 import { VAULT_FRIENDLY_NAMES, TOKEN_ADDRESSES } from "@/lib/constants";
 import { useChatSheet } from "@/contexts/chat-context";
+import type { VaultStatsItem } from "@/lib/vaults/types";
 
 interface DepositSheetProps {
   vault: VaultStatsItem;
@@ -64,10 +60,9 @@ export function DepositSheet({
     : 18;
   const vaultAddress = vault.contracts.vaultAddress as Address;
 
-  const { balance } = useTokenBalance(tokenAddress, walletAddress);
-  const tokenBalance = balance
-    ? Number(balance.balance) / 10 ** tokenDecimals
-    : 0;
+  const tokenBalance = Number(
+    walletAssets?.find((a) => a.symbol === selectedToken)?.balance ?? "0",
+  );
 
   const amount = isEditing ? Number(editValue) || 0 : (sliderValue / 100) * tokenBalance;
 
@@ -80,14 +75,29 @@ export function DepositSheet({
     }
   }, [amount, tokenDecimals]);
 
-  const { shares: previewShares } = usePreviewDeposit(
-    vaultAddress,
-    parsedAmount,
-    { enabled: parsedAmount > 0n },
-  );
+  const [previewShares, setPreviewShares] = useState<bigint>(0n);
+
+  useEffect(() => {
+    if (!walletAddress || parsedAmount <= 0n) {
+      setPreviewShares(0n);
+      return;
+    }
+    const params = new URLSearchParams({
+      walletAddress,
+      vaultAddress,
+      vaultAssetToken: vault.asset.address,
+      fromToken: tokenAddress,
+      amount: parsedAmount.toString(),
+    });
+    fetch(`/api/vaults/preview/deposit?${params}`)
+      .then((res) => res.json())
+      .then((json) => setPreviewShares(json.shares ? BigInt(json.shares) : 0n))
+      .catch(() => setPreviewShares(0n));
+  }, [walletAddress, parsedAmount, vaultAddress, vault.asset.address, tokenAddress]);
 
   const { deposit, step, isLoading, isSuccess, hash, reset } = useVaultDeposit({
     vault: vaultAddress,
+    vaultAssetToken: vault.asset.address,
     onConfirmed: (txHash) => {
       logActivity({
         type: "deposit",

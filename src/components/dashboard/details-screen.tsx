@@ -1,8 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import type { VaultStatsItem } from "@yo-protocol/core";
 import type { DashboardData } from "@/hooks/use-dashboard-data";
+import type { VaultStatsItem } from "@/lib/vaults/types";
 import { formatUsd } from "@/lib/format";
 import { VaultCard } from "./vault-card";
 import { PositionCard } from "./position-card";

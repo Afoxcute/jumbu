@@ -5,13 +5,11 @@ import { parseUnits, encodeFunctionData, erc20Abi } from "viem";
 import type { Address, Hex } from "viem";
 import { useSmartWallets } from "@privy-io/react-auth/smart-wallets";
 import { usePrivy } from "@privy-io/react-auth";
-import { useYoClient } from "@yo-protocol/react";
 import type { DashboardData } from "@/hooks/use-dashboard-data";
 import {
   VAULT_FRIENDLY_NAMES,
   BASE_TOKENS,
   BASE_TOKEN_DECIMALS,
-  ALLOWANCE_HOLDER,
 } from "@/lib/constants";
 import { formatApy } from "@/lib/format";
 import { logActivity } from "@/lib/activity";
@@ -134,7 +132,6 @@ function SwapDepositPending({
 
   const { client } = useSmartWallets();
   const { user } = usePrivy();
-  const yoClient = useYoClient();
   const walletAddress = (user?.smartWallet?.address ??
     user?.wallet?.address) as Address | undefined;
 
@@ -155,7 +152,7 @@ function SwapDepositPending({
       sendResult({ success: false, error: "Wallet not ready" });
       return;
     }
-    if (!isSwapOnly && (!yoClient || !vault)) {
+    if (!isSwapOnly && !vault) {
       sendResult({ success: false, error: "Vault not ready" });
       return;
     }
@@ -169,7 +166,7 @@ function SwapDepositPending({
       const isNativeETH = sellSym === "ETH";
       const sellAmountWei = parseUnits(sellAmount, sellDecimals).toString();
 
-      // 1. Fetch fresh 0x quote via our API route
+      // 1. Fetch LI.FI quote via our API route
       const params = new URLSearchParams({
         sellToken: sellAddr,
         buyToken: buyAddr,
@@ -178,10 +175,10 @@ function SwapDepositPending({
       });
       const quoteRes = await fetch(`/api/swap-quote?${params}`);
       const quote = await quoteRes.json();
-      if (!quoteRes.ok || quote.code) {
+      if (!quoteRes.ok || !quote.transaction) {
         sendResult({
           success: false,
-          error: quote.reason || quote.message || "Swap quote failed",
+          error: quote.error || quote.message || "Swap quote failed",
         });
         setExecuting(false);
         return;
@@ -190,18 +187,17 @@ function SwapDepositPending({
       // 2. Build swap calls: approve (skip for native ETH) + swap
       const swapCalls: { to: Address; data: Hex; value?: bigint }[] = [];
       if (!isNativeETH) {
-        swapCalls.push({
-          to: sellAddr,
-          data: encodeFunctionData({
-            abi: erc20Abi,
-            functionName: "approve",
-            args: [
-              (quote.issues?.allowance?.spender ||
-                ALLOWANCE_HOLDER) as Address,
-              BigInt(sellAmountWei),
-            ],
-          }),
-        });
+        const spender = quote.approvalAddress || quote.estimate?.approvalAddress;
+        if (spender) {
+          swapCalls.push({
+            to: sellAddr,
+            data: encodeFunctionData({
+              abi: erc20Abi,
+              functionName: "approve",
+              args: [spender as Address, BigInt(sellAmountWei)],
+            }),
+          });
+        }
       }
       swapCalls.push({
         to: quote.transaction.to as Address,
@@ -219,26 +215,30 @@ function SwapDepositPending({
         sendResult({ success: true, txHash });
         logActivity({ type: "swap", amount: sellAmount, tokenSymbol: sellSym, txHash });
       } else {
-        // 3b. Swap + deposit — add deposit calls via yoGateway SDK
-        const vaultAddress = vault!.contracts.vaultAddress as Address;
-        const depositAmount = BigInt(quote.minBuyAmount);
-        const depositTxs = await yoClient!.prepareDepositWithApproval({
-          vault: vaultAddress,
-          token: buyAddr,
-          owner: walletAddress,
-          recipient: walletAddress,
-          amount: depositAmount,
-          slippageBps: 50,
+        // 3b. Swap + deposit — build LI.FI + vault tx plan on server
+        const planRes = await fetch("/api/vaults/tx-plan/deposit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            walletAddress,
+            vaultAddress: vault!.contracts.vaultAddress,
+            vaultAssetToken: vault!.asset.address,
+            fromToken: sellAddr,
+            amount: sellAmountWei,
+          }),
         });
-
-        const depositCalls = depositTxs.map((tx) => ({
+        const plan = await planRes.json();
+        if (!planRes.ok || !Array.isArray(plan.calls)) {
+          throw new Error(plan.error || "Failed to build deposit transaction");
+        }
+        const depositCalls = plan.calls.map((tx: { to: string; data: string; value?: string }) => ({
           to: tx.to as Address,
           data: tx.data as Hex,
           value: tx.value ? BigInt(tx.value) : undefined,
         }));
 
         const txHash = await client.sendTransaction({
-          calls: [...swapCalls, ...depositCalls],
+          calls: depositCalls,
         });
         sendResult({ success: true, txHash });
         logActivity({ type: "swap_and_deposit", amount: sellAmount, tokenSymbol: sellSym, vaultId, txHash });
@@ -257,7 +257,6 @@ function SwapDepositPending({
   }, [
     client,
     walletAddress,
-    yoClient,
     vault,
     sellToken,
     buyToken,
@@ -339,6 +338,7 @@ function PendingApproval({
 
   const { deposit, isLoading: depositLoading } = useVaultDeposit({
     vault: vaultAddress!,
+    vaultAssetToken: (vault?.asset?.address ?? "0x0000000000000000000000000000000000000000") as Address,
     onConfirmed: (hash) => {
       sendResult({ success: true, txHash: hash });
       logActivity({ type: "deposit", amount, tokenSymbol, vaultId, txHash: hash });

@@ -2,7 +2,7 @@
 
 **Onchain savings made easy.**
 
-yoyo is a mobile savings app that lets anyone earn yield on their money without understanding crypto. Powered by [YO Protocol](https://docs.yo.xyz), it replaces the complexity of DeFi with a single AI chat interface. Just tell yoyo what you're saving for, and it handles everything.
+yoyo is a mobile savings app that lets anyone earn yield on their money without understanding crypto. Powered by LI.FI routing and vault adapters, it replaces the complexity of DeFi with a single AI chat interface. Just tell yoyo what you're saving for, and it handles everything.
 
 **[Live App](https://yoyo.s0nderlabs.xyz)** · **[Demo Video](https://www.youtube.com/watch?v=lt3f9EXybj8&t=3s)**
 
@@ -13,7 +13,7 @@ yoyo is a mobile savings app that lets anyone earn yield on their money without 
 1. **Sign up with email or Google.** No wallet, no seed phrases. A gasless smart account (ERC-4337) is created behind the scenes. All transactions are gas-sponsored — users never pay gas fees.
 2. **Fund your account** via MoonPay (card, Apple Pay, Google Pay) or receive tokens from an external wallet.
 3. **Talk to the AI.** Say "I want to save for a trip to Japan" and the AI checks rates, recommends the best vault, sets a savings goal, and presents a one-tap deposit confirmation.
-4. **Earn automatically.** YO Protocol finds the best risk-adjusted yields across DeFi. Zero management fees, zero performance fees.
+4. **Earn automatically.** LI.FI routes deposits into vault assets and yoyo handles the vault transaction flow. Zero management fees, zero performance fees.
 5. **Withdraw anytime.** No lock-ups, no penalties.
 
 ## Features
@@ -28,9 +28,9 @@ yoyo is a mobile savings app that lets anyone earn yield on their money without 
 - **Real mainnet transactions** — All deposits and withdrawals happen on Base mainnet. No testnet, no mocks.
 - **PWA support** — Installable as a home screen app with offline fallback.
 
-## YO Protocol integration
+## LI.FI + vault integration
 
-yoyo integrates `@yo-protocol/react` (v1.0.6) to interact with YO's ERC-4626 vaults on Base.
+yoyo uses LI.FI quotes/routes for swap and bridge execution, then submits ERC-4626 vault actions through Privy smart wallets.
 
 **Supported vaults:**
 
@@ -41,19 +41,11 @@ yoyo integrates `@yo-protocol/react` (v1.0.6) to interact with YO's ERC-4626 vau
 | yoBTC | Bitcoin Savings | cbBTC |
 | yoEUR | Euro Savings | EURC |
 
-**SDK hooks used:**
+**Execution flow:**
 
-- `useVaults()` — live vault rates and TVL (landing page + dashboard)
-- `useUserPositions()` — user's savings positions across vaults
-- `useUserBalances()` — wallet token balances
-- `useTokenBalance()` — individual token balance for deposit sheets
-- `usePreviewDeposit()` — real-time deposit share previews
-- `useYoClient()` — access to `YoClient` for transaction preparation
-
-**Transaction methods:**
-
-- `YoClient.prepareDepositWithApproval()` — deposits with automatic token approval (supports cross-asset swaps)
-- `YoClient.prepareRedeemWithApproval()` — withdrawals with automatic approval
+- LI.FI quote API is used for route discovery and transaction request generation.
+- Server tx-plan endpoints compose route calls with ERC-4626 `deposit` / `redeem` calls.
+- UI and chat execute plans via Privy's `useSmartWallets().client.sendTransaction()`.
 
 All transactions are executed through Privy's `useSmartWallets().client.sendTransaction()` as batched UserOperations (ERC-4337).
 
@@ -66,7 +58,7 @@ The AI assistant uses DeepSeek Chat (`deepseek-chat`) via the Vercel AI SDK with
 | `get_vault_rates` | Server | Current interest rates for all savings accounts |
 | `get_wallet_balance` | Server | User's wallet balance |
 | `get_user_positions` | Server | Current savings positions |
-| `get_swap_quote` | Server | Token swap quotes via 0x API |
+| `get_swap_quote` | Server | Token swap quotes via LI.FI API |
 | `create_goal` | Server | Set a savings goal |
 | `get_goals` | Server | Retrieve savings goals |
 | `deposit` | Client | Save into a vault (requires user confirmation) |
@@ -87,10 +79,10 @@ Voice input is powered by Groq Whisper (`whisper-large-v3-turbo`).
 | AI | Vercel AI SDK v6, DeepSeek Chat, Groq Whisper |
 | Auth | Privy (ERC-4337 smart accounts) |
 | Gas sponsorship | Pimlico |
-| Yield | `@yo-protocol/react` SDK |
+| Routing | LI.FI API / SDK |
 | Database | Neon Postgres, Drizzle ORM |
 | On-ramp | MoonPay (via Privy) |
-| Swaps | 0x API |
+| Swaps | LI.FI |
 | Hosting | Vercel |
 
 ## Project structure
@@ -160,7 +152,7 @@ Required environment variables:
 | `DATABASE_URL` | Neon Postgres connection string |
 | `DEEPSEEK_API_KEY` | DeepSeek API key for chat |
 | `GROQ_API_KEY` | Groq API key for voice transcription |
-| `ZERO_X_API_KEY` | 0x API key for swap quotes |
+| `LIFI_API_KEY` | LI.FI API key for routing and quotes |
 
 Run database migrations:
 
@@ -185,7 +177,6 @@ PrivyProvider
   └── SmartWalletsProvider
         └── QueryClientProvider
               └── WagmiProvider        ← from @privy-io/wagmi (NOT wagmi)
-                    └── YieldProvider  ← from @yo-protocol/react
 ```
 
 ## Database schema

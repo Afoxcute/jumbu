@@ -28,7 +28,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "yoyo — Onchain Savings Made Easy",
   description:
-    "Earn up to 12% on your savings. No fees. Withdraw anytime. Powered by YO Protocol.",
+    "Earn on your savings with smart LI.FI routing. No fees. Withdraw anytime.",
   manifest: "/manifest.json",
   icons: {
     icon: "/favicon.png",
