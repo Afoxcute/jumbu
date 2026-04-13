@@ -171,7 +171,7 @@ Open [http://localhost:3000](http://localhost:3000).
 ## Runtime QA (dev)
 
 - **Desktop**: The full-screen “mobile only” overlay runs in **production** only. In `next dev`, you can exercise `/app` on desktop without `NEXT_PUBLIC_DISABLE_DESKTOP_BLOCKER`. For production desktop testing, set `NEXT_PUBLIC_DISABLE_DESKTOP_BLOCKER=1` in `.env.local`.
-- **Privy + Solana**: If your Privy dashboard has Solana wallet login enabled, the app supplies `toSolanaWalletConnectors()` in `src/lib/privy.ts` so the SDK does not error at startup. You can instead disable Solana login in the Privy dashboard if you are EVM-only.
+- **Privy + Solana**: This app is **EVM-only** (`walletChainType: "ethereum-only"`). If the browser console shows *Solana wallet login enabled but no connectors*, turn **off** Solana wallet login in the [Privy dashboard](https://dashboard.privy.io/) for this app. Importing `@privy-io/react-auth/solana` here would require extra Solana packages (for example `@solana-program/memo`) even though the product does not use Solana.
 - **Signed-in flows** (swap, swap+deposit, deposit, withdraw, chat tool approvals): require a real Privy session and funded smart wallet on Base; confirm in browser devtools that `/api/swap-quote`, `/api/vaults/tx-plan/*`, and `/api/vaults/preview/*` return 200 when exercising each path.
 
 ## Provider stack
