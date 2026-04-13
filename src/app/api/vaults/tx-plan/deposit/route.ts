@@ -65,12 +65,35 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const approvalAddress = (quote.estimate?.approvalAddress ||
+      quote.approvalAddress) as `0x${string}` | undefined;
+    if (!approvalAddress) {
+      return NextResponse.json(
+        { error: "LI.FI quote missing approval address for this route" },
+        { status: 502 },
+      );
+    }
+    calls.push({
+      to: fromToken,
+      data: encodeFunctionData({
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [approvalAddress, BigInt(amount)],
+      }),
+    });
+
     calls.push({
       to: quote.transactionRequest.to as `0x${string}`,
       data: quote.transactionRequest.data as `0x${string}`,
       value: quote.transactionRequest.value,
     });
     depositAmount = quote.estimate?.toAmountMin || quote.estimate?.toAmount;
+    if (!depositAmount) {
+      return NextResponse.json(
+        { error: "LI.FI quote did not return an output amount" },
+        { status: 502 },
+      );
+    }
   }
 
   calls.push({

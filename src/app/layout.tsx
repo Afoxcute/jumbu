@@ -25,6 +25,10 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+const showDesktopBlocker =
+  process.env.NODE_ENV === "production" &&
+  process.env.NEXT_PUBLIC_DISABLE_DESKTOP_BLOCKER !== "1";
+
 export const metadata: Metadata = {
   title: "yoyo — Onchain Savings Made Easy",
   description:
@@ -66,11 +70,12 @@ export default function RootLayout({
     >
       <body>
         <Providers>{children}</Providers>
-        {/* Desktop blocker — mobile only app */}
-        <div className="pointer-events-none fixed inset-0 z-[9999] hidden flex-col items-center justify-center gap-4 bg-[#FFFEF2] md:flex">
-          <span className="font-display text-[3rem] tracking-tight text-[#1A1A18]">yoyo</span>
-          <p className="font-body text-base text-[#6B6B5E]">designed for mobile — open on your phone</p>
-        </div>
+        {showDesktopBlocker && (
+          <div className="pointer-events-none fixed inset-0 z-[9999] hidden flex-col items-center justify-center gap-4 bg-[#FFFEF2] md:flex">
+            <span className="font-display text-[3rem] tracking-tight text-[#1A1A18]">yoyo</span>
+            <p className="font-body text-base text-[#6B6B5E]">designed for mobile — open on your phone</p>
+          </div>
+        )}
       </body>
     </html>
   );

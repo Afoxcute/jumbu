@@ -163,10 +163,17 @@ function SwapDepositPending({
       const sellAddr = BASE_TOKENS[sellSym] as Address;
       const buyAddr = BASE_TOKENS[buySym] as Address;
       const sellDecimals = BASE_TOKEN_DECIMALS[sellSym];
+      if (!sellAddr || !buyAddr || !sellDecimals) {
+        throw new Error("Unsupported token pair");
+      }
       const isNativeETH = sellSym === "ETH";
       const sellAmountWei = parseUnits(sellAmount, sellDecimals).toString();
 
-      // 1. Fetch LI.FI quote via our API route
+      if (!isSwapOnly && vault?.asset?.symbol && buySym !== vault.asset.symbol.toUpperCase()) {
+        throw new Error(`Selected vault expects ${vault.asset.symbol}, but quote buy token is ${buySym}`);
+      }
+
+      // 1. Fetch LI.FI quote via our API route (for user-facing rate + swap flow)
       const params = new URLSearchParams({
         sellToken: sellAddr,
         buyToken: buyAddr,
@@ -188,16 +195,22 @@ function SwapDepositPending({
       const swapCalls: { to: Address; data: Hex; value?: bigint }[] = [];
       if (!isNativeETH) {
         const spender = quote.approvalAddress || quote.estimate?.approvalAddress;
-        if (spender) {
-          swapCalls.push({
-            to: sellAddr,
-            data: encodeFunctionData({
-              abi: erc20Abi,
-              functionName: "approve",
-              args: [spender as Address, BigInt(sellAmountWei)],
-            }),
+        if (!spender) {
+          sendResult({
+            success: false,
+            error: "Swap quote missing approval target; try again or use a different pair",
           });
+          setExecuting(false);
+          return;
         }
+        swapCalls.push({
+          to: sellAddr,
+          data: encodeFunctionData({
+            abi: erc20Abi,
+            functionName: "approve",
+            args: [spender as Address, BigInt(sellAmountWei)],
+          }),
+        });
       }
       swapCalls.push({
         to: quote.transaction.to as Address,

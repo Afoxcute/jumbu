@@ -67,6 +67,12 @@ export async function GET(req: NextRequest) {
       );
     }
     depositAmount = quote.estimate?.toAmountMin || quote.estimate?.toAmount;
+    if (!depositAmount) {
+      return NextResponse.json(
+        { error: "LI.FI quote did not return an output amount" },
+        { status: 502 },
+      );
+    }
   }
 
   const shares = await client.readContract({

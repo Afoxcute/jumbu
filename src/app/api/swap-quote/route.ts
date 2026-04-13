@@ -57,5 +57,6 @@ export async function GET(req: NextRequest) {
     buyAmount: quote.estimate?.toAmount,
     minBuyAmount: quote.estimate?.toAmountMin,
     transaction: quote.transactionRequest,
+    approvalAddress: quote.approvalAddress ?? quote.estimate?.approvalAddress,
   });
 }
