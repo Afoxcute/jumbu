@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { encodeFunctionData, erc20Abi } from "viem";
 import { verifyAuth } from "@/lib/auth";
 import { DEFAULT_CHAIN_ID } from "@/lib/constants";
+import { tryComposerVaultDeposit } from "@/lib/lifi/composer-deposit";
+import { shouldTryEarnComposerDeposit } from "@/lib/lifi/earn-deposit-policy";
+import { fetchEarnVaultSafe } from "@/lib/lifi/earn-client";
+import { fetchLiQuestQuote } from "@/lib/lifi/quest-quote";
 
 const erc4626DepositAbi = [
   {
@@ -36,6 +40,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
   }
 
+  const earnMeta = await fetchEarnVaultSafe(DEFAULT_CHAIN_ID, vaultAddress);
+  if (shouldTryEarnComposerDeposit(earnMeta)) {
+    const composer = await tryComposerVaultDeposit({
+      chainId: DEFAULT_CHAIN_ID,
+      walletAddress,
+      vaultAddress,
+      fromToken,
+      amount,
+    });
+    if (composer.ok) {
+      return NextResponse.json({
+        calls: composer.calls,
+        route: "earn_composer" as const,
+      });
+    }
+  }
+
   const calls: Array<{ to: `0x${string}`; data: `0x${string}`; value?: string }> = [];
   let depositAmount = amount;
 
@@ -51,16 +72,15 @@ export async function POST(req: NextRequest) {
       slippage: "0.01",
     });
 
-    const headers: HeadersInit = {};
-    if (process.env.LIFI_API_KEY) headers["x-lifi-api-key"] = process.env.LIFI_API_KEY;
-    const quoteRes = await fetch(`https://li.quest/v1/quote?${params}`, {
-      headers,
-      cache: "no-store",
-    });
-    const quote = await quoteRes.json();
-    if (!quoteRes.ok || !quote.transactionRequest) {
+    const { ok, quote } = await fetchLiQuestQuote(params);
+    if (!ok || !quote.transactionRequest) {
       return NextResponse.json(
-        { error: quote.message || quote.error || "Failed to build LI.FI route" },
+        {
+          error:
+            (typeof quote.message === "string" && quote.message) ||
+            (typeof quote.error === "string" && quote.error) ||
+            "Failed to build LI.FI route",
+        },
         { status: 502 },
       );
     }
@@ -87,7 +107,8 @@ export async function POST(req: NextRequest) {
       data: quote.transactionRequest.data as `0x${string}`,
       value: quote.transactionRequest.value,
     });
-    depositAmount = quote.estimate?.toAmountMin || quote.estimate?.toAmount;
+    depositAmount =
+      quote.estimate?.toAmountMin || quote.estimate?.toAmount || "";
     if (!depositAmount) {
       return NextResponse.json(
         { error: "LI.FI quote did not return an output amount" },
@@ -110,9 +131,4 @@ export async function POST(req: NextRequest) {
     data: encodeFunctionData({
       abi: erc4626DepositAbi,
       functionName: "deposit",
-      args: [BigInt(depositAmount), walletAddress],
-    }),
-  });
-
-  return NextResponse.json({ calls });
-}
+      args: [BigInt(depositAmount), wal

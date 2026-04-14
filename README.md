@@ -152,7 +152,7 @@ Required environment variables:
 | `DATABASE_URL` | Neon Postgres connection string |
 | `DEEPSEEK_API_KEY` | DeepSeek API key for chat |
 | `GROQ_API_KEY` | Groq API key for voice transcription |
-| `LIFI_API_KEY` | LI.FI API key for routing and quotes |
+| `LIFI_API_KEY` | LI.FI API key for `li.quest` (Composer / quotes) and `earn.li.fi` (Earn Data API) |
 
 Run database migrations:
 

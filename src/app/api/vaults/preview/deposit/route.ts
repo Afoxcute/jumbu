@@ -3,6 +3,8 @@ import { createPublicClient, http } from "viem";
 import { base } from "viem/chains";
 import { verifyAuth } from "@/lib/auth";
 import { DEFAULT_CHAIN_ID } from "@/lib/constants";
+import { fetchEarnVaultSafe } from "@/lib/lifi/earn-client";
+import { fetchLiQuestQuote } from "@/lib/lifi/quest-quote";
 
 const erc4626PreviewAbi = [
   {
@@ -41,6 +43,43 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
   }
 
+  const earnMeta = await fetchEarnVaultSafe(DEFAULT_CHAIN_ID, vaultAddress);
+  if (earnMeta?.isTransactional) {
+    const params = new URLSearchParams({
+      fromChain: String(DEFAULT_CHAIN_ID),
+      toChain: String(DEFAULT_CHAIN_ID),
+      fromToken,
+      toToken: vaultAddress,
+      fromAmount: amount,
+      fromAddress: walletAddress,
+      toAddress: walletAddress,
+      slippage: "0.01",
+    });
+    const { ok, quote } = await fetchLiQuestQuote(params);
+    const q = quote as {
+      transactionRequest?: unknown;
+      estimate?: { toAmountMin?: string; toAmount?: string };
+      message?: string;
+      error?: string;
+    };
+    if (ok && q.transactionRequest) {
+      if (fromToken.toLowerCase() !== vaultAssetToken.toLowerCase()) {
+        const out = q.estimate?.toAmountMin || q.estimate?.toAmount;
+        if (out) {
+          return NextResponse.json({ shares: String(out) });
+        }
+      } else {
+        const shares = await client.readContract({
+          address: vaultAddress,
+          abi: erc4626PreviewAbi,
+          functionName: "previewDeposit",
+          args: [BigInt(amount)],
+        });
+        return NextResponse.json({ shares: shares.toString() });
+      }
+    }
+  }
+
   let depositAmount = amount;
   if (fromToken.toLowerCase() !== vaultAssetToken.toLowerCase()) {
     const params = new URLSearchParams({
@@ -53,20 +92,20 @@ export async function GET(req: NextRequest) {
       toAddress: walletAddress,
       slippage: "0.01",
     });
-    const headers: HeadersInit = {};
-    if (process.env.LIFI_API_KEY) headers["x-lifi-api-key"] = process.env.LIFI_API_KEY;
-    const quoteRes = await fetch(`https://li.quest/v1/quote?${params}`, {
-      headers,
-      cache: "no-store",
-    });
-    const quote = await quoteRes.json();
-    if (!quoteRes.ok) {
+    const { ok, quote } = await fetchLiQuestQuote(params);
+    if (!ok) {
       return NextResponse.json(
-        { error: quote.message || quote.error || "Failed to preview route" },
+        {
+          error:
+            (typeof quote.message === "string" && quote.message) ||
+            (typeof quote.error === "string" && quote.error) ||
+            "Failed to preview route",
+        },
         { status: 502 },
       );
     }
-    depositAmount = quote.estimate?.toAmountMin || quote.estimate?.toAmount;
+    depositAmount =
+      quote.estimate?.toAmountMin || quote.estimate?.toAmount || "";
     if (!depositAmount) {
       return NextResponse.json(
         { error: "LI.FI quote did not return an output amount" },

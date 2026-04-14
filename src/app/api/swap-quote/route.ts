@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAuth } from "@/lib/auth";
 import { BASE_TOKENS, DEFAULT_CHAIN_ID } from "@/lib/constants";
+import { fetchLiQuestQuote } from "@/lib/lifi/quest-quote";
 
 const ALLOWED_TOKENS = new Set(Object.values(BASE_TOKENS));
 
@@ -37,17 +38,15 @@ export async function GET(req: NextRequest) {
     slippage: "0.01",
   });
 
-  const headers: HeadersInit = {};
-  if (process.env.LIFI_API_KEY) headers["x-lifi-api-key"] = process.env.LIFI_API_KEY;
-
-  const res = await fetch(`https://li.quest/v1/quote?${params}`, {
-    headers,
-    cache: "no-store",
-  });
-  const quote = await res.json();
-  if (!res.ok) {
+  const { ok, quote } = await fetchLiQuestQuote(params);
+  if (!ok) {
     return NextResponse.json(
-      { error: quote.message || quote.error || "Failed to get LI.FI quote" },
+      {
+        error:
+          (typeof quote.message === "string" && quote.message) ||
+          (typeof quote.error === "string" && quote.error) ||
+          "Failed to get LI.FI quote",
+      },
       { status: 502 },
     );
   }

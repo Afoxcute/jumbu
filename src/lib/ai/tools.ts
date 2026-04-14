@@ -11,7 +11,8 @@ import {
 import { formatApy } from "@/lib/format";
 import { db } from "@/lib/db";
 import { goals } from "@/lib/db/schema";
-import { VAULT_CATALOG } from "@/lib/vaults/catalog";
+import { fetchLiQuestQuote } from "@/lib/lifi/quest-quote";
+import { getEnrichedVaultCatalog } from "@/lib/vaults/enrich-with-earn";
 import { getWalletSnapshot } from "@/lib/vaults/snapshot";
 
 export function createTools(walletAddress?: string, userId?: string) {
@@ -21,7 +22,8 @@ export function createTools(walletAddress?: string, userId?: string) {
         "Get current interest rates for all savings accounts on Base chain",
       inputSchema: z.object({}),
       execute: async () => {
-        const baseVaults = VAULT_CATALOG.filter(
+        const catalog = await getEnrichedVaultCatalog();
+        const baseVaults = catalog.filter(
           (v) => v.chain.id === DEFAULT_CHAIN_ID,
         );
         return baseVaults.map((v) => ({
@@ -30,6 +32,8 @@ export function createTools(walletAddress?: string, userId?: string) {
           symbol: v.asset.symbol,
           apy: formatApy(v.yield?.["7d"]),
           tvl: v.tvl?.formatted || "N/A",
+          protocol: v.earn?.protocolName,
+          composerDeposit: v.earn?.isTransactional ?? false,
         }));
       },
     }),
@@ -59,8 +63,9 @@ export function createTools(walletAddress?: string, userId?: string) {
       execute: async () => {
         if (!walletAddress) return { error: "No wallet connected" };
         const snapshot = await getWalletSnapshot(walletAddress as `0x${string}`);
+        const catalog = await getEnrichedVaultCatalog();
         const apyMap = Object.fromEntries(
-          VAULT_CATALOG.map((v) => [v.id, v.yield?.["7d"] || "0"]),
+          catalog.map((v) => [v.id, v.yield?.["7d"] || "0"]),
         );
         const positions = snapshot.positions.map((p) => ({
           vaultName: VAULT_FRIENDLY_NAMES[p.vault.id] || p.vault.name,
@@ -109,16 +114,7 @@ export function createTools(walletAddress?: string, userId?: string) {
         const taker =
           walletAddress || "0x0000000000000000000000000000000000000000";
 
-        const params = new URLSearchParams({
-          chainId: String(DEFAULT_CHAIN_ID),
-          sellToken: sellAddr,
-          buyToken: buyAddr,
-          sellAmount: sellAmountWei,
-          taker,
-          slippageBps: "100",
-        });
-
-        const res = await fetch(`https://li.quest/v1/quote?${new URLSearchParams({
+        const quoteParams = new URLSearchParams({
           fromChain: String(DEFAULT_CHAIN_ID),
           toChain: String(DEFAULT_CHAIN_ID),
           fromToken: sellAddr,
@@ -127,14 +123,10 @@ export function createTools(walletAddress?: string, userId?: string) {
           fromAddress: taker,
           toAddress: taker,
           slippage: "0.01",
-        })}`, {
-          headers: process.env.LIFI_API_KEY
-            ? { "x-lifi-api-key": process.env.LIFI_API_KEY }
-            : undefined,
         });
 
-        const quote = await res.json();
-        if (!res.ok) {
+        const { ok, quote } = await fetchLiQuestQuote(quoteParams);
+        if (!ok) {
           return {
             error:
               quote.error || quote.message || "Failed to get swap quote",

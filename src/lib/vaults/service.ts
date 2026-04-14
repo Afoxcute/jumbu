@@ -22,7 +22,15 @@ async function getSnapshot(walletAddress?: string): Promise<WalletSnapshot> {
 }
 
 export const vaultService: VaultService = {
-  getVaults: async () => VAULT_CATALOG,
+  getVaults: async () => {
+    try {
+      const res = await fetch("/api/vaults/catalog", { cache: "no-store" });
+      if (!res.ok) return VAULT_CATALOG;
+      return (await res.json()) as VaultStatsItem[];
+    } catch {
+      return VAULT_CATALOG;
+    }
+  },
   getSnapshot,
 };
 
@@ -30,7 +38,7 @@ export function useVaultsCatalog() {
   return useQuery({
     queryKey: ["vault-catalog"],
     queryFn: vaultService.getVaults,
-    staleTime: 60_000,
+    staleTime: 120_000,
   });
 }
 

@@ -4,6 +4,17 @@ export interface VaultAsset {
   decimals: number;
 }
 
+/** Enrichment from LI.FI Earn Data API (https://earn.li.fi) */
+export interface VaultEarnMeta {
+  slug: string;
+  protocolName?: string;
+  protocolLogoUri?: string;
+  isTransactional: boolean;
+  isRedeemable: boolean;
+  vaultName?: string;
+  tags?: string[];
+}
+
 export interface VaultStatsItem {
   id: string;
   name: string;
@@ -13,6 +24,7 @@ export interface VaultStatsItem {
   yield?: { "7d"?: string };
   merklRewardYield?: string;
   tvl?: { formatted?: string };
+  earn?: VaultEarnMeta;
 }
 
 export interface UserVaultPosition {

@@ -53,6 +53,9 @@ export function VaultCard({ vault, onTap }: VaultCardProps) {
       </p>
       <p className="relative mt-1.5 font-body text-[11px] text-ink-light/60">
         {vault.asset.symbol}
+        {vault.earn?.protocolName ? (
+          <span className="text-ink-light/40"> · {vault.earn.protocolName}</span>
+        ) : null}
       </p>
       {bonus > 0 && (
         <p
