@@ -358,12 +358,25 @@ export function OverviewScreen({
     [data.allVaults],
   );
 
+  const fallbackCuratedVaults = useMemo(
+    () =>
+      data.baseVaults.filter((v) =>
+        ["USDC", "WETH", "ETH"].includes(v.asset.symbol.toUpperCase()),
+      ),
+    [data.baseVaults],
+  );
+
+  const vaultsForBrowsing = useMemo(
+    () => (discoverableVaults.length > 0 ? discoverableVaults : fallbackCuratedVaults),
+    [discoverableVaults, fallbackCuratedVaults],
+  );
+
   const chainOptions = useMemo(
     () =>
-      Array.from(new Set(discoverableVaults.map((v) => String(v.chain.id)))).sort(
+      Array.from(new Set(vaultsForBrowsing.map((v) => String(v.chain.id)))).sort(
         (a, b) => Number(a) - Number(b),
       ),
-    [discoverableVaults],
+    [vaultsForBrowsing],
   );
 
   const protocolOptions = useMemo(
@@ -379,7 +392,7 @@ export function OverviewScreen({
   );
 
   const filteredVaults = useMemo(() => {
-    return discoverableVaults.filter((v) => {
+    return vaultsForBrowsing.filter((v) => {
       if (vaultChainFilter !== "all" && String(v.chain.id) !== vaultChainFilter)
         return false;
       if (
@@ -395,11 +408,24 @@ export function OverviewScreen({
       return true;
     });
   }, [
-    discoverableVaults,
+    vaultsForBrowsing,
     vaultChainFilter,
     vaultProtocolFilter,
     vaultTokenFilter,
   ]);
+
+  useEffect(() => {
+    if (vaultProtocolFilter !== "all" && protocolOptions.length === 0) {
+      setVaultProtocolFilter("all");
+    }
+    if (
+      vaultProtocolFilter !== "all" &&
+      protocolOptions.length > 0 &&
+      !protocolOptions.includes(vaultProtocolFilter)
+    ) {
+      setVaultProtocolFilter("all");
+    }
+  }, [vaultProtocolFilter, protocolOptions]);
 
   // Cache-aware flags — show content if real data OR cache is available
   const hasData = !data.userLoading || data.cache !== null;
@@ -757,7 +783,7 @@ export function OverviewScreen({
         </div>
 
         {/* ── Vaults (horizontal scroll, full-bleed) ──── */}
-        {!data.vaultsLoading && discoverableVaults.length > 0 && (
+        {!data.vaultsLoading && vaultsForBrowsing.length > 0 && (
           <motion.section {...sectionReveal(1)} className="mt-10">
             <div className="px-6 sm:px-10">
               <div className="mx-auto w-full max-w-lg">
