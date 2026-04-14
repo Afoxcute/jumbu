@@ -8,6 +8,7 @@ import type { Address, Hex } from "viem";
 import { usePrivy } from "@privy-io/react-auth";
 import { useSmartWallets } from "@privy-io/react-auth/smart-wallets";
 import { useChatSheet } from "@/contexts/chat-context";
+import { formatTokenBalance } from "@/lib/format";
 
 const USDC_BASE: Address = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 
@@ -16,7 +17,7 @@ type Token = "ETH" | "USDC";
 
 interface SendSheetProps {
   walletBalanceUsd: number;
-  walletAssets: { symbol: string; balance: string }[];
+  walletAssets: { symbol: string; balance: string; decimals: number }[];
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -34,7 +35,10 @@ export function SendSheet({ walletAssets, onClose, onSuccess }: SendSheetProps) 
 
   const ethBalance = walletAssets.find((a) => a.symbol === "ETH")?.balance ?? "0";
   const usdcBalance = walletAssets.find((a) => a.symbol === "USDC")?.balance ?? "0";
+  const ethDecimals = walletAssets.find((a) => a.symbol === "ETH")?.decimals ?? 18;
+  const usdcDecimals = walletAssets.find((a) => a.symbol === "USDC")?.decimals ?? 6;
   const selectedBalance = token === "ETH" ? ethBalance : usdcBalance;
+  const selectedDecimals = token === "ETH" ? ethDecimals : usdcDecimals;
 
   const isValidAddress = /^0x[a-fA-F0-9]{40}$/.test(recipient);
   const amountNum = parseFloat(amount) || 0;
@@ -189,7 +193,7 @@ export function SendSheet({ walletAssets, onClose, onSuccess }: SendSheetProps) 
               />
               <div className="mt-1.5 flex items-center justify-between">
                 <span className="font-mono text-[10px] text-ink-light">
-                  Balance: {parseFloat(selectedBalance).toLocaleString("en-US", { maximumFractionDigits: 6 })} {token}
+                  Balance: {formatTokenBalance(selectedBalance, selectedDecimals)} {token}
                 </span>
                 <button
                   onClick={() => setAmount(selectedBalance)}

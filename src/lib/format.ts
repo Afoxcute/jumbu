@@ -43,6 +43,18 @@ export function formatShares(shares: bigint, decimals: number): string {
   return num.toLocaleString("en-US", { maximumFractionDigits: 4 });
 }
 
+export function formatTokenBalance(balance: string, decimals: number): string {
+  if (!balance) return "0";
+  const [intPartRaw, fracRaw = ""] = balance.split(".");
+  const intPart = intPartRaw || "0";
+  const intWithCommas = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+  if (decimals <= 0 || fracRaw.length === 0) return intWithCommas;
+
+  const frac = fracRaw.slice(0, decimals);
+  return `${intWithCommas}.${frac}`;
+}
+
 export function getPrice(
   prices: Record<string, number>,
   symbol: string,

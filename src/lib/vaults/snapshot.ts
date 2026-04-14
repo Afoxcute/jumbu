@@ -75,7 +75,7 @@ export async function getWalletSnapshot(walletAddress: `0x${string}`): Promise<W
       });
       const balance = formatUnits(raw, decimals);
       const usd = (parseFloat(balance) * (prices[symbol.toLowerCase()] ?? 1)).toFixed(2);
-      return { symbol, balance, balanceUsd: usd };
+      return { symbol, balance, balanceUsd: usd, decimals };
     }),
   );
 
@@ -111,7 +111,7 @@ export async function getWalletSnapshot(walletAddress: `0x${string}`): Promise<W
   );
 
   const compactAssets = walletAssets.filter(
-    (asset): asset is { symbol: string; balance: string; balanceUsd: string } =>
+    (asset): asset is { symbol: string; balance: string; balanceUsd: string; decimals: number } =>
       asset !== null,
   );
   const compactPositions = positions.filter(

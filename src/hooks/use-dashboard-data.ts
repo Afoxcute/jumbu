@@ -91,7 +91,7 @@ export function useDashboardData(): DashboardData {
   const walletBalanceUsd = snapshot?.walletBalanceUsd ?? 0;
 
   const walletAssets = useMemo(
-    () => (snapshot?.walletAssets ?? []).filter((a) => parseFloat(a.balanceUsd) > 0.01),
+    () => (snapshot?.walletAssets ?? []).filter((a) => parseFloat(a.balance) > 0),
     [snapshot?.walletAssets],
   );
 

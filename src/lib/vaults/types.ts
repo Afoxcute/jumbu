@@ -41,6 +41,7 @@ export interface WalletAsset {
   symbol: string;
   balance: string;
   balanceUsd: string;
+  decimals: number;
 }
 
 export interface WalletSnapshot {
