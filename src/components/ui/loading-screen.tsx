@@ -48,7 +48,7 @@ export function LoadingScreen({ progress, onExit, skipEntry = false }: LoadingSc
               : { type: "spring", stiffness: 80, damping: 20 }
           }
         >
-          yo
+          jum
         </motion.span>
         <motion.span
           className="font-display text-[4.5rem] tracking-tight text-ink"
@@ -60,7 +60,7 @@ export function LoadingScreen({ progress, onExit, skipEntry = false }: LoadingSc
               : { type: "spring", stiffness: 80, damping: 20, delay: 0.12 }
           }
         >
-          yo
+          bu
         </motion.span>
       </div>
 
