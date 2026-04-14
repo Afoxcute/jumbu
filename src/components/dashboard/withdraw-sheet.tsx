@@ -50,7 +50,11 @@ export function WithdrawSheet({
     }
     const params = new URLSearchParams({
       vaultAddress,
+      vaultAssetToken: vault.asset.address,
+      walletAddress: walletAddress || "",
       shares: redeemShares.toString(),
+      fromChain: String(vault.chain.id),
+      toChain: String(vault.chain.id),
     });
     fetch(`/api/vaults/preview/redeem?${params}`)
       .then((res) => res.json())
@@ -61,6 +65,7 @@ export function WithdrawSheet({
   const { redeem, step, isLoading, isSuccess, hash, instant, reset } =
     useVaultRedeem({
       vault: vaultAddress,
+      vaultAssetToken: vault.asset.address as Address,
       onConfirmed: (txHash) => {
         logActivity({
           type: "withdraw",
@@ -90,8 +95,12 @@ export function WithdrawSheet({
 
   const handleRedeem = useCallback(async () => {
     if (!canRedeem) return;
-    await redeem(redeemShares);
-  }, [canRedeem, redeem, redeemShares]);
+    await redeem({
+      shares: redeemShares,
+      fromChain: vault.chain.id,
+      toChain: vault.chain.id,
+    });
+  }, [canRedeem, redeem, redeemShares, vault.chain.id]);
 
   // Sync step to chat bar context — use refs to avoid infinite loop
   const { setActiveSheet } = useChatSheet();

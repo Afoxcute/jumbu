@@ -381,6 +381,7 @@ function PendingApproval({
 
   const { redeem, isLoading: redeemLoading } = useVaultRedeem({
     vault: vaultAddress!,
+    vaultAssetToken: (vault?.asset?.address ?? "0x0000000000000000000000000000000000000000") as Address,
     onConfirmed: (hash) => {
       sendResult({ success: true, txHash: hash });
       logActivity({ type: "withdraw", amount, tokenSymbol, vaultId, txHash: hash });
@@ -442,7 +443,11 @@ function PendingApproval({
       const sharesToRedeem =
         (position.position.shares * BigInt(Math.round(ratio * 10000))) /
         10000n;
-      await redeem(sharesToRedeem);
+      await redeem({
+        shares: sharesToRedeem,
+        fromChain: vault.chain.id,
+        toChain: vault.chain.id,
+      });
     }
   };
 

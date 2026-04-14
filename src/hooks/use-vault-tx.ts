@@ -135,10 +135,12 @@ export function useVaultDeposit({
 
 export function useVaultRedeem({
   vault,
+  vaultAssetToken,
   onConfirmed,
   onError,
 }: {
   vault: Address;
+  vaultAssetToken: Address;
   onConfirmed?: (hash: Hex) => void;
   onError?: (err: Error) => void;
 }) {
@@ -151,8 +153,25 @@ export function useVaultRedeem({
     user?.wallet?.address) as Address | undefined;
 
   const redeem = useCallback(
-    async (shares: bigint) => {
-      if (!client || !walletAddress) return;
+    async ({
+      shares,
+      fromChain,
+      toChain,
+    }: {
+      shares: bigint;
+      fromChain?: number;
+      toChain?: number;
+    }) => {
+      if (!client) {
+        onError?.(new Error("Privy smart wallet client unavailable"));
+        setStep("error");
+        return;
+      }
+      if (!walletAddress) {
+        onError?.(new Error("Wallet address unavailable"));
+        setStep("error");
+        return;
+      }
       setStep("processing");
       try {
         const planRes = await fetch("/api/vaults/tx-plan/redeem", {
@@ -161,7 +180,10 @@ export function useVaultRedeem({
           body: JSON.stringify({
             walletAddress,
             vaultAddress: vault,
+            vaultAssetToken,
             shares: shares.toString(),
+            fromChain,
+            toChain,
           }),
         });
         const plan = await planRes.json();
@@ -188,7 +210,7 @@ export function useVaultRedeem({
         );
       }
     },
-    [client, walletAddress, vault, onConfirmed, onError],
+    [client, walletAddress, vault, vaultAssetToken, onConfirmed, onError],
   );
 
   const reset = useCallback(() => {
