@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
+    "build:next": "next build",
+    "build:netlify": "npx netlify build",
     "start": "next start"
   },
   "dependencies": {

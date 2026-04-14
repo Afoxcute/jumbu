@@ -4,7 +4,7 @@
 
 jumbu is a mobile savings app that lets anyone earn yield on their money without understanding crypto. Powered by LI.FI routing and vault adapters, it replaces the complexity of DeFi with a single AI chat interface. Just tell jumbu what you're saving for, and it handles everything.
 
-**[Repository](https://github.com/Afoxcute/jumbu)** · **[Demo Video](https://www.youtube.com/watch?v=lt3f9EXybj8&t=3s)**
+**[Repository](https://github.com/Afoxcute/jumbu)**
 
 ---
 
@@ -83,7 +83,7 @@ Voice input is powered by Groq Whisper (`whisper-large-v3-turbo`).
 | Database | Neon Postgres, Drizzle ORM |
 | On-ramp | MoonPay (via Privy) |
 | Swaps | LI.FI |
-| Hosting | Vercel |
+| Hosting | Netlify |
 
 ## Project structure
 
@@ -168,6 +168,24 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+## Netlify build output
+
+This project is configured for Netlify's Next.js runtime.
+
+- `npm run build` generates a production Next.js build in `.next/`
+- Netlify uses `netlify.toml` + `@netlify/plugin-nextjs` to deploy this app with serverless runtime support
+- `npm run build:netlify` runs `netlify build` for linked Netlify sites (requires `netlify link` or a site ID)
+
+To deploy from local CLI:
+
+```bash
+netlify deploy --build --prod
+```
+
+Make sure the same server environment variables are set in Netlify Site Settings:
+`NEXT_PUBLIC_PRIVY_APP_ID`, `PRIVY_APP_SECRET`, `NEXT_PUBLIC_ALCHEMY_API_KEY`,
+`DATABASE_URL`, `DEEPSEEK_API_KEY`, `GROQ_API_KEY`, and `LIFI_API_KEY`.
+
 ## Runtime QA (dev)
 
 - **Desktop**: The full-screen “mobile only” overlay runs in **production** only. In `next dev`, you can exercise `/app` on desktop without `NEXT_PUBLIC_DISABLE_DESKTOP_BLOCKER`. For production desktop testing, set `NEXT_PUBLIC_DISABLE_DESKTOP_BLOCKER=1` in `.env.local`.
@@ -215,7 +233,7 @@ PrivyProvider
 
 ## Hackathon
 
-Built for [Hack with YO: Designing Smart DeFi Savings](https://dorahacks.io/hackathon/yo/detail) on DoraHacks.
+Built for the LI.FI DeFi Mullet Hackathon.
 
 ## License
 
@@ -223,4 +241,4 @@ MIT
 
 ---
 
-Built by [s0nderlabs](https://github.com/s0nderlabs)
+Built by [Afoxcute](https://x.com/jwafo_tweet)

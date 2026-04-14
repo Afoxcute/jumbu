@@ -7,6 +7,32 @@ import { usePrivy } from "@privy-io/react-auth";
 
 type Step = "idle" | "processing" | "success" | "error";
 
+function parseErrorMessage(err: unknown): string {
+  if (!err) return "Unknown transaction error";
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  try {
+    const anyErr = err as {
+      message?: string;
+      shortMessage?: string;
+      details?: string;
+      cause?: { message?: string };
+      code?: string | number;
+    };
+    const message =
+      anyErr.shortMessage ||
+      anyErr.message ||
+      anyErr.details ||
+      anyErr.cause?.message ||
+      "Unknown transaction error";
+    const code =
+      anyErr.code !== undefined ? ` [code: ${String(anyErr.code)}]` : "";
+    return `${message}${code}`;
+  } catch {
+    return "Unknown transaction error";
+  }
+}
+
 export function useVaultDeposit({
   vault,
   vaultAssetToken,
@@ -38,7 +64,16 @@ export function useVaultDeposit({
       fromChain?: number;
       toChain?: number;
     }) => {
-      if (!client || !walletAddress) return;
+      if (!client) {
+        onError?.(new Error("Privy smart wallet client unavailable"));
+        setStep("error");
+        return;
+      }
+      if (!walletAddress) {
+        onError?.(new Error("Wallet address unavailable"));
+        setStep("error");
+        return;
+      }
       setStep("processing");
       try {
         const planRes = await fetch("/api/vaults/tx-plan/deposit", {
@@ -56,7 +91,13 @@ export function useVaultDeposit({
         });
         const plan = await planRes.json();
         if (!planRes.ok || !Array.isArray(plan.calls)) {
-          throw new Error(plan.error || "Failed to build deposit transaction");
+          throw new Error(
+            plan.error ||
+              `Failed to build deposit transaction (HTTP ${planRes.status})`,
+          );
+        }
+        if (plan.calls.length === 0) {
+          throw new Error("Transaction plan is empty");
         }
 
         const txHash = await client.sendTransaction({
@@ -69,13 +110,9 @@ export function useVaultDeposit({
         setHash(txHash);
         setStep("success");
         onConfirmed?.(txHash);
-      } catch (err: any) {
+      } catch (err: unknown) {
         setStep("error");
-        onError?.(
-          err instanceof Error
-            ? err
-            : new Error(err?.message || "Transaction failed"),
-        );
+        onError?.(new Error(parseErrorMessage(err)));
       }
     },
     [client, walletAddress, vault, vaultAssetToken, onConfirmed, onError],

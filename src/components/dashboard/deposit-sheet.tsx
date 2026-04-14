@@ -9,7 +9,13 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useVaultDeposit } from "@/hooks/use-vault-tx";
 import { formatUsd, formatApy, formatShares, getPrice } from "@/lib/format";
 import { logActivity } from "@/lib/activity";
-import { DEFAULT_CHAIN_ID, SUPPORTED_CHAIN_IDS, VAULT_FRIENDLY_NAMES, TOKEN_ADDRESSES } from "@/lib/constants";
+import {
+  BASE_TOKENS,
+  DEFAULT_CHAIN_ID,
+  SUPPORTED_CHAIN_IDS,
+  VAULT_FRIENDLY_NAMES,
+  TOKEN_ADDRESSES,
+} from "@/lib/constants";
 import { useChatSheet } from "@/contexts/chat-context";
 import { isSupportedEarnDepositTokenSymbol } from "@/lib/lifi/earn-deposit-tokens";
 import type { VaultStatsItem } from "@/lib/vaults/types";
@@ -34,6 +40,7 @@ export function DepositSheet({
   const [sliderValue, setSliderValue] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState("");
+  const [depositError, setDepositError] = useState<string | null>(null);
   const [sourceChain, setSourceChain] = useState<number>(DEFAULT_CHAIN_ID);
   const isEarnDepositVault = vault.earn?.isTransactional !== false;
   const targetChain = vault.chain.id;
@@ -46,13 +53,13 @@ export function DepositSheet({
   // Token selector: default to vault's native token, fall back to USDC if user has none
   const nativeSymbol = vault.asset.symbol;
   const availableTokens = useMemo(() => {
-    if (!walletAssets?.length) return isEarnDepositVault ? ["USDC", "WETH"] : [nativeSymbol];
+    if (!walletAssets?.length) return isEarnDepositVault ? ["USDC", "ETH"] : [nativeSymbol];
     const symbols = walletAssets.map((a) => a.symbol).filter((s) => TOKEN_ADDRESSES[s] || s === nativeSymbol);
     const restricted = isEarnDepositVault
       ? symbols.filter((s) => isSupportedEarnDepositTokenSymbol(s))
       : symbols;
     if (restricted.length > 0) return restricted;
-    if (isEarnDepositVault) return ["USDC", "WETH"];
+    if (isEarnDepositVault) return ["USDC", "ETH"];
     // Put native token first if present
     if (symbols.includes(nativeSymbol)) return [nativeSymbol, ...symbols.filter((s) => s !== nativeSymbol)];
     return symbols.length ? symbols : [nativeSymbol];
@@ -78,9 +85,11 @@ export function DepositSheet({
     }
   }, [availableTokens, selectedToken]);
 
-  const tokenAddress = (selectedToken === nativeSymbol
-    ? vault.asset.address
-    : TOKEN_ADDRESSES[selectedToken] ?? vault.asset.address) as Address;
+  const tokenAddress = (isEarnDepositVault
+    ? (BASE_TOKENS[selectedToken.toUpperCase()] ?? vault.asset.address)
+    : selectedToken === nativeSymbol
+      ? vault.asset.address
+      : TOKEN_ADDRESSES[selectedToken] ?? vault.asset.address) as Address;
   const tokenDecimals = selectedToken === "USDC" || selectedToken === "USDT" ? 6
     : selectedToken === "EURC" ? 6
     : selectedToken === nativeSymbol ? vault.asset.decimals
@@ -139,7 +148,9 @@ export function DepositSheet({
       });
       onSuccess();
     },
-    onError: () => {},
+    onError: (err) => {
+      setDepositError(err.message || "Transaction failed");
+    },
   });
 
   const price = getPrice(prices, selectedToken) || 0;
@@ -150,6 +161,7 @@ export function DepositSheet({
 
   const handleDeposit = useCallback(async () => {
     if (!canDeposit) return;
+    setDepositError(null);
     await deposit({
       token: tokenAddress,
       amount: parsedAmount,
@@ -177,15 +189,21 @@ export function DepositSheet({
   }, [step, setActiveSheet]);
 
   useEffect(() => {
+    if (step === "idle") setDepositError(null);
+  }, [step]);
+
+  useEffect(() => {
     return () => setActiveSheet(null);
   }, [setActiveSheet]);
 
   const handleAmountTap = useCallback(() => {
+    setDepositError(null);
     setIsEditing(true);
     setEditValue(amount > 0 ? amount.toString() : "");
   }, [amount]);
 
   const handleEditDone = useCallback(() => {
+    setDepositError(null);
     const val = Number(editValue);
     if (!isNaN(val) && val >= 0 && tokenBalance > 0) {
       setSliderValue(Math.min((val / tokenBalance) * 100, 100));
@@ -315,7 +333,7 @@ export function DepositSheet({
             </div>
             <p className="mt-2 font-mono text-[10px] text-ink-light/60">
               Depositing to {chainLabel[targetChain] || `Chain ${targetChain}`}
-              {sourceChain !== DEFAULT_CHAIN_ID ? " · enter amount manually for cross-chain" : ""}
+                {sourceChain !== DEFAULT_CHAIN_ID ? " · enter amount manually for cross-chain" : ""}
             </p>
             {availableTokens.length > 1 && (
               <div className="mt-4 flex gap-2">
@@ -409,6 +427,16 @@ export function DepositSheet({
                   ~{formatShares(previewShares, vault.asset.decimals)} shares
                 </span>
               </div>
+            )}
+            {step === "processing" && (
+              <p className="mt-3 text-center font-mono text-[10px] text-ink-light">
+                Signing and submitting transaction with Privy...
+              </p>
+            )}
+            {depositError && (
+              <p className="mt-3 text-center font-mono text-[10px] text-fail">
+                {depositError}
+              </p>
             )}
 
             {/* Confirm button moved to morphing chat bar */}

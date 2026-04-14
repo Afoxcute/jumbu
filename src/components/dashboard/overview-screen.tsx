@@ -517,7 +517,13 @@ export function OverviewScreen({
                     <div className={cardBase}>
                       <div className="pointer-events-none absolute inset-0 rounded-[inherit] border" style={{ background: emeraldMetal.background, borderColor: emeraldMetal.borderColor }} />
                       <CardGrain />
-                      <span className="pointer-events-none absolute right-5 bottom-5 font-display text-[3rem] leading-none text-ink/[0.04] select-none" style={{ transform: "rotate(-8deg)" }}>jumbu</span>
+                      <img
+                        src="/jumbu.png"
+                        alt=""
+                        aria-hidden="true"
+                        className="pointer-events-none absolute right-5 bottom-5 h-10 w-10 select-none rounded-lg opacity-[0.08]"
+                        style={{ transform: "rotate(-8deg)" }}
+                      />
                       <div className="relative flex aspect-[1.6/1] flex-col p-6">
                         <AnimatePresence mode="wait" initial={false}>
                           {flippedCard !== 0 ? (
@@ -586,7 +592,13 @@ export function OverviewScreen({
                     <div className={cardBase}>
                       <div className="pointer-events-none absolute inset-0 rounded-[inherit] border" style={{ background: goldMetal.background, borderColor: goldMetal.borderColor }} />
                       <CardGrain />
-                      <span className="pointer-events-none absolute right-5 bottom-5 font-display text-[3rem] leading-none text-ink/[0.04] select-none" style={{ transform: "rotate(-8deg)" }}>jumbu</span>
+                      <img
+                        src="/jumbu.png"
+                        alt=""
+                        aria-hidden="true"
+                        className="pointer-events-none absolute right-5 bottom-5 h-10 w-10 select-none rounded-lg opacity-[0.08]"
+                        style={{ transform: "rotate(-8deg)" }}
+                      />
                       <div className="relative flex aspect-[1.6/1] flex-col p-6">
                         <AnimatePresence mode="wait" initial={false}>
                           {flippedCard !== 1 ? (

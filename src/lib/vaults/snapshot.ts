@@ -57,22 +57,36 @@ export async function getPrices(symbols: string[]): Promise<Record<string, numbe
 
 export async function getWalletSnapshot(walletAddress: `0x${string}`): Promise<WalletSnapshot> {
   const symbols = Array.from(
-    new Set(VAULT_CATALOG.map((v) => v.asset.symbol).concat(["USDC", "USDT"])),
+    new Set(
+      [
+        "ETH",
+        ...VAULT_CATALOG.map((v) => v.asset.symbol),
+        ...Object.keys(TOKEN_ADDRESSES),
+      ].map((s) => s.toUpperCase()),
+    ),
   );
+  const tokenAddressBySymbol = Object.fromEntries(
+    Object.entries(TOKEN_ADDRESSES).map(([k, v]) => [k.toUpperCase(), v]),
+  ) as Record<string, string>;
   const prices = await getPrices(symbols);
 
   const walletAssets = await Promise.all(
     symbols.map(async (symbol) => {
-      const token = TOKEN_ADDRESSES[symbol];
-      if (!token) return null;
       const decimals =
-        symbol === "USDC" || symbol === "USDT" || symbol === "EURC" ? 6 : symbol === "cbBTC" ? 8 : 18;
-      const raw = await client.readContract({
-        address: token as `0x${string}`,
-        abi: erc20Abi,
-        functionName: "balanceOf",
-        args: [walletAddress],
-      });
+        symbol === "USDC" || symbol === "USDT" || symbol === "EURC" ? 6 : symbol === "CBBTC" ? 8 : 18;
+      let raw = 0n;
+      if (symbol === "ETH") {
+        raw = await client.getBalance({ address: walletAddress });
+      } else {
+        const token = tokenAddressBySymbol[symbol];
+        if (!token) return null;
+        raw = await client.readContract({
+          address: token as `0x${string}`,
+          abi: erc20Abi,
+          functionName: "balanceOf",
+          args: [walletAddress],
+        });
+      }
       const balance = formatUnits(raw, decimals);
       const usd = (parseFloat(balance) * (prices[symbol.toLowerCase()] ?? 1)).toFixed(2);
       return { symbol, balance, balanceUsd: usd, decimals };

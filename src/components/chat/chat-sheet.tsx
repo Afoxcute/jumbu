@@ -146,9 +146,10 @@ export function ChatSheet({ visible }: ChatSheetProps) {
           <div className="flex justify-center">
             <button
               onClick={close}
-              className="font-display text-lg text-ink transition-opacity hover:opacity-60"
+              className="transition-opacity hover:opacity-60"
+              aria-label="Close chat"
             >
-              jumbu
+              <img src="/jumbu.png" alt="jumbu" className="h-9 w-9 rounded-lg object-cover" />
             </button>
           </div>
         </div>

@@ -35,8 +35,8 @@ export const metadata: Metadata = {
     "Earn on your savings with smart LI.FI routing. No fees. Withdraw anytime.",
   manifest: "/manifest.json",
   icons: {
-    icon: "/favicon.png",
-    apple: "/apple-touch-icon.png",
+    icon: "/jumbu.png",
+    apple: "/jumbu.png",
   },
   openGraph: {
     title: "jumbu — Onchain Savings Made Easy",
@@ -72,7 +72,7 @@ export default function RootLayout({
         <Providers>{children}</Providers>
         {showDesktopBlocker && (
           <div className="pointer-events-none fixed inset-0 z-[9999] hidden flex-col items-center justify-center gap-4 bg-[#FFFEF2] md:flex">
-            <span className="font-display text-[3rem] tracking-tight text-[#1A1A18]">jumbu</span>
+            <img src="/jumbu.png" alt="jumbu" className="h-20 w-20 rounded-2xl object-cover" />
             <p className="font-body text-base text-[#6B6B5E]">designed for mobile — open on your phone</p>
           </div>
         )}
