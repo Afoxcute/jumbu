@@ -11,6 +11,7 @@ import { formatUsd, formatApy, formatShares, getPrice } from "@/lib/format";
 import { logActivity } from "@/lib/activity";
 import { VAULT_FRIENDLY_NAMES, TOKEN_ADDRESSES } from "@/lib/constants";
 import { useChatSheet } from "@/contexts/chat-context";
+import { isSupportedEarnDepositTokenSymbol } from "@/lib/lifi/earn-deposit-tokens";
 import type { VaultStatsItem } from "@/lib/vaults/types";
 
 interface DepositSheetProps {
@@ -33,23 +34,42 @@ export function DepositSheet({
   const [sliderValue, setSliderValue] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState("");
+  const isEarnDepositVault = vault.earn?.isTransactional !== false;
 
   // Token selector: default to vault's native token, fall back to USDC if user has none
   const nativeSymbol = vault.asset.symbol;
   const availableTokens = useMemo(() => {
-    if (!walletAssets?.length) return [nativeSymbol];
+    if (!walletAssets?.length) return isEarnDepositVault ? ["USDC", "WETH"] : [nativeSymbol];
     const symbols = walletAssets.map((a) => a.symbol).filter((s) => TOKEN_ADDRESSES[s] || s === nativeSymbol);
+    const restricted = isEarnDepositVault
+      ? symbols.filter((s) => isSupportedEarnDepositTokenSymbol(s))
+      : symbols;
+    if (restricted.length > 0) return restricted;
+    if (isEarnDepositVault) return ["USDC", "WETH"];
     // Put native token first if present
     if (symbols.includes(nativeSymbol)) return [nativeSymbol, ...symbols.filter((s) => s !== nativeSymbol)];
     return symbols.length ? symbols : [nativeSymbol];
-  }, [walletAssets, nativeSymbol]);
+  }, [walletAssets, nativeSymbol, isEarnDepositVault]);
 
   const [selectedToken, setSelectedToken] = useState(() => {
-    // Default to native if user has it, otherwise first available
-    if (walletAssets?.some((a) => a.symbol === nativeSymbol && parseFloat(a.balance) > 0)) return nativeSymbol;
-    const firstWithBalance = walletAssets?.find((a) => parseFloat(a.balance) > 0 && TOKEN_ADDRESSES[a.symbol]);
-    return firstWithBalance?.symbol ?? nativeSymbol;
+    const firstWithBalance = walletAssets?.find(
+      (a) =>
+        parseFloat(a.balance) > 0 &&
+        (isEarnDepositVault
+          ? isSupportedEarnDepositTokenSymbol(a.symbol)
+          : !!TOKEN_ADDRESSES[a.symbol] || a.symbol === nativeSymbol),
+    );
+    if (firstWithBalance) return firstWithBalance.symbol;
+    return isEarnDepositVault ? "USDC" : nativeSymbol;
   });
+
+  useEffect(() => {
+    if (!availableTokens.includes(selectedToken)) {
+      setSelectedToken(availableTokens[0]);
+      setSliderValue(0);
+      setIsEditing(false);
+    }
+  }, [availableTokens, selectedToken]);
 
   const tokenAddress = (selectedToken === nativeSymbol
     ? vault.asset.address

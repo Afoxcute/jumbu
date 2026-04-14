@@ -113,7 +113,6 @@ function getProse(hasPositions: boolean, apy: number, totalSavings: number, wall
 const VAULT_SHORT: Record<string, string> = {
   yoUSD: "USD",
   yoETH: "ETH",
-  yoBTC: "BTC",
   yoEUR: "EUR",
   yoGOLD: "Gold",
   yoUSDT: "USDT",
@@ -136,7 +135,7 @@ const chipsReveal = cascade(550);
 
 /* ── Narration text highlighting ──────────────────────────── */
 
-const HIGHLIGHT_TOKENS = ["ETH", "WETH", "USDC", "USDT", "cbBTC", "BTC", "EURC", "EUR", "USD", "Gold"];
+const HIGHLIGHT_TOKENS = ["ETH", "WETH", "USDC", "USDT", "BTC", "EURC", "EUR", "USD", "Gold"];
 const HIGHLIGHT_VAULTS = Object.values(VAULT_FRIENDLY_NAMES);
 const HIGHLIGHT_PATTERN = (() => {
   const vaultEscaped = HIGHLIGHT_VAULTS.map((v) => v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));

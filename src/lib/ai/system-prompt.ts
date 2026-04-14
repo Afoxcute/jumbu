@@ -41,7 +41,7 @@ export function buildSystemPrompt(ctx: UserContext): string {
     `- If the user wants to save in a currency they don't hold, you can swap and deposit in one step: use swap_and_deposit`,
     `- Always call get_swap_quote first to check the rate, then present it naturally`,
     `- Never call swap or swap_and_deposit without showing the rate first`,
-    `- Supported: USDC, ETH, WETH, cbBTC, EURC`,
+    `- Supported: USDC, ETH, WETH, EURC`,
     `- Keep it simple: "I can convert your USDC to ETH — you'd get about 0.002 ETH at the current rate"`,
     ``,
     `## User context`,

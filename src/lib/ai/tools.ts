@@ -86,10 +86,10 @@ export function createTools(walletAddress?: string, userId?: string) {
       inputSchema: z.object({
         sellToken: z
           .string()
-          .describe("Token symbol to sell (e.g. USDC, WETH, cbBTC)"),
+          .describe("Token symbol to sell (e.g. USDC, WETH, ETH)"),
         buyToken: z
           .string()
-          .describe("Token symbol to buy (e.g. WETH, USDC, cbBTC)"),
+          .describe("Token symbol to buy (e.g. WETH, USDC, ETH)"),
         sellAmount: z
           .string()
           .describe(
@@ -158,7 +158,7 @@ export function createTools(walletAddress?: string, userId?: string) {
           .describe("Token to sell (e.g. USDC, ETH, WETH)"),
         buyToken: z
           .string()
-          .describe("Token to buy (e.g. WETH, USDC, cbBTC)"),
+          .describe("Token to buy (e.g. WETH, USDC, ETH)"),
         sellAmount: z
           .string()
           .describe("Amount to sell in human-readable units"),
@@ -174,7 +174,7 @@ export function createTools(walletAddress?: string, userId?: string) {
       inputSchema: z.object({
         vaultId: z
           .string()
-          .describe("The vault ID (e.g. yoUSD, yoETH, yoBTC)"),
+          .describe("The vault ID (e.g. yoUSD, yoETH)"),
         amount: z
           .string()
           .describe(
@@ -182,7 +182,7 @@ export function createTools(walletAddress?: string, userId?: string) {
           ),
         tokenSymbol: z
           .string()
-          .describe("The token symbol (e.g. USDC, WETH, WBTC)"),
+          .describe("The token symbol for Earn deposit source token (USDC or ETH)"),
       }),
     }),
 
@@ -192,7 +192,7 @@ export function createTools(walletAddress?: string, userId?: string) {
       inputSchema: z.object({
         vaultId: z
           .string()
-          .describe("The vault ID (e.g. yoUSD, yoETH, yoBTC)"),
+          .describe("The vault ID (e.g. yoUSD, yoETH)"),
         amount: z
           .string()
           .describe("The amount to withdraw in token units"),
@@ -208,10 +208,10 @@ export function createTools(walletAddress?: string, userId?: string) {
       inputSchema: z.object({
         sellToken: z
           .string()
-          .describe("Token to sell (e.g. USDC)"),
+          .describe("Token to sell for Earn deposit source token (USDC or ETH)"),
         buyToken: z
           .string()
-          .describe("Token to buy / deposit (e.g. WETH)"),
+          .describe("Token to buy / deposit (e.g. WETH, USDC, ETH)"),
         sellAmount: z
           .string()
           .describe("Amount to sell in human-readable units"),

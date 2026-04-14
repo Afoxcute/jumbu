@@ -26,16 +26,4 @@ export const VAULT_CATALOG: VaultStatsItem[] = [
     contracts: { vaultAddress: VAULTS.yoETH.base },
     yield: { "7d": "4.40" },
   },
-  {
-    id: "yoBTC",
-    name: "Bitcoin Savings",
-    chain: { id: DEFAULT_CHAIN_ID, name: "Base" },
-    asset: {
-      symbol: "cbBTC",
-      address: TOKEN_ADDRESSES.cbBTC as `0x${string}`,
-      decimals: 8,
-    },
-    contracts: { vaultAddress: VAULTS.yoBTC.base },
-    yield: { "7d": "3.60" },
-  },
 ];

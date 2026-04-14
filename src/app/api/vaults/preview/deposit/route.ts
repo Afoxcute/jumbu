@@ -4,6 +4,10 @@ import { base } from "viem/chains";
 import { verifyAuth } from "@/lib/auth";
 import { DEFAULT_CHAIN_ID } from "@/lib/constants";
 import { shouldTryEarnComposerDeposit } from "@/lib/lifi/earn-deposit-policy";
+import {
+  EARN_DEPOSIT_SUPPORTED_TOKEN_LABEL,
+  isSupportedEarnDepositTokenAddress,
+} from "@/lib/lifi/earn-deposit-tokens";
 import { fetchEarnVaultSafe } from "@/lib/lifi/earn-client";
 import { fetchLiQuestQuote } from "@/lib/lifi/quest-quote";
 
@@ -46,6 +50,15 @@ export async function GET(req: NextRequest) {
 
   const earnMeta = await fetchEarnVaultSafe(DEFAULT_CHAIN_ID, vaultAddress);
   if (shouldTryEarnComposerDeposit(earnMeta)) {
+    if (!isSupportedEarnDepositTokenAddress(fromToken)) {
+      return NextResponse.json(
+        {
+          error: `Earn deposit supports only ${EARN_DEPOSIT_SUPPORTED_TOKEN_LABEL} source tokens`,
+        },
+        { status: 400 },
+      );
+    }
+
     const params = new URLSearchParams({
       fromChain: String(DEFAULT_CHAIN_ID),
       toChain: String(DEFAULT_CHAIN_ID),

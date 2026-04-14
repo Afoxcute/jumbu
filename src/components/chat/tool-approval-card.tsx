@@ -15,6 +15,7 @@ import { formatApy } from "@/lib/format";
 import { logActivity } from "@/lib/activity";
 import { useVaultDeposit, useVaultRedeem } from "@/hooks/use-vault-tx";
 import { useChatSheet } from "@/contexts/chat-context";
+import { isSupportedEarnDepositTokenSymbol } from "@/lib/lifi/earn-deposit-tokens";
 
 type AddToolResultFn = (params: {
   tool: string;
@@ -168,6 +169,10 @@ function SwapDepositPending({
       }
       const isNativeETH = sellSym === "ETH";
       const sellAmountWei = parseUnits(sellAmount, sellDecimals).toString();
+
+      if (!isSwapOnly && !isSupportedEarnDepositTokenSymbol(sellSym)) {
+        throw new Error("Earn deposit currently supports only USDC or ETH as source tokens");
+      }
 
       if (!isSwapOnly && vault?.asset?.symbol && buySym !== vault.asset.symbol.toUpperCase()) {
         throw new Error(`Selected vault expects ${vault.asset.symbol}, but quote buy token is ${buySym}`);
@@ -391,11 +396,23 @@ function PendingApproval({
     }
 
     if (toolName === "deposit") {
-      const tokenAddress = vault.asset.address as Address;
-      const decimals = vault.asset.decimals;
+      const depositSymbol = (tokenSymbol || "").toUpperCase();
+      if (!isSupportedEarnDepositTokenSymbol(depositSymbol)) {
+        sendResult({
+          success: false,
+          error: "Earn deposit currently supports only USDC or ETH as source tokens",
+        });
+        return;
+      }
+      const tokenAddress = BASE_TOKENS[depositSymbol] as Address | undefined;
+      const decimals = BASE_TOKEN_DECIMALS[depositSymbol];
+      if (!tokenAddress || !decimals) {
+        sendResult({ success: false, error: "Unsupported deposit token" });
+        return;
+      }
       const parsedAmount = parseUnits(amount, decimals);
       await deposit({
-        token: tokenAddress,
+        token: tokenAddress as Address,
         amount: parsedAmount,
         chainId: vault.chain.id,
       });

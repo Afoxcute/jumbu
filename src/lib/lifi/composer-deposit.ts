@@ -1,4 +1,9 @@
 import { encodeFunctionData, erc20Abi } from "viem";
+import { BASE_TOKENS } from "@/lib/constants";
+import {
+  EARN_DEPOSIT_SUPPORTED_TOKEN_LABEL,
+  isSupportedEarnDepositTokenAddress,
+} from "@/lib/lifi/earn-deposit-tokens";
 import { fetchLiQuestQuote } from "@/lib/lifi/quest-quote";
 import type { VaultTxCall } from "@/lib/vaults/types";
 
@@ -22,6 +27,13 @@ export async function tryComposerVaultDeposit(params: {
   | { ok: true; calls: VaultTxCall[]; toAmountMin?: string; toAmount?: string }
   | { ok: false; error: string }
 > {
+  if (!isSupportedEarnDepositTokenAddress(params.fromToken)) {
+    return {
+      ok: false,
+      error: `Earn deposit supports only ${EARN_DEPOSIT_SUPPORTED_TOKEN_LABEL} source tokens`,
+    };
+  }
+
   const sp = new URLSearchParams({
     fromChain: String(params.chainId),
     toChain: String(params.chainId),
@@ -52,8 +64,9 @@ export async function tryComposerVaultDeposit(params: {
   const approvalAddress = (est?.approvalAddress ?? q.approvalAddress) as `0x${string}` | undefined;
 
   const calls: VaultTxCall[] = [];
+  const isNativeEth = params.fromToken.toLowerCase() === BASE_TOKENS.ETH.toLowerCase();
 
-  if (approvalAddress) {
+  if (approvalAddress && !isNativeEth) {
     calls.push({
       to: params.fromToken,
       data: encodeFunctionData({
