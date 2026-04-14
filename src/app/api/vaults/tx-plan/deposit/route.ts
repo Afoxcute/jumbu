@@ -50,10 +50,7 @@ export async function POST(req: NextRequest) {
       amount,
     });
     if (composer.ok) {
-      return NextResponse.json({
-        calls: composer.calls,
-        route: "earn_composer" as const,
-      });
+      return NextResponse.json({ calls: composer.calls });
     }
   }
 
@@ -131,4 +128,9 @@ export async function POST(req: NextRequest) {
     data: encodeFunctionData({
       abi: erc4626DepositAbi,
       functionName: "deposit",
-      args: [BigInt(depositAmount), wal
+      args: [BigInt(depositAmount), walletAddress],
+    }),
+  });
+
+  return NextResponse.json({ calls });
+}

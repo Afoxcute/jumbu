@@ -3,6 +3,7 @@ import { createPublicClient, http } from "viem";
 import { base } from "viem/chains";
 import { verifyAuth } from "@/lib/auth";
 import { DEFAULT_CHAIN_ID } from "@/lib/constants";
+import { shouldTryEarnComposerDeposit } from "@/lib/lifi/earn-deposit-policy";
 import { fetchEarnVaultSafe } from "@/lib/lifi/earn-client";
 import { fetchLiQuestQuote } from "@/lib/lifi/quest-quote";
 
@@ -44,7 +45,7 @@ export async function GET(req: NextRequest) {
   }
 
   const earnMeta = await fetchEarnVaultSafe(DEFAULT_CHAIN_ID, vaultAddress);
-  if (earnMeta?.isTransactional) {
+  if (shouldTryEarnComposerDeposit(earnMeta)) {
     const params = new URLSearchParams({
       fromChain: String(DEFAULT_CHAIN_ID),
       toChain: String(DEFAULT_CHAIN_ID),
