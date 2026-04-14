@@ -234,6 +234,9 @@ export function OverviewScreen({
   const [activityMode, setActivityMode] = useState<"prose" | "list">("prose");
   const [narration, setNarration] = useState<string | null>(null);
   const [narrationLoading, setNarrationLoading] = useState(false);
+  const [vaultChainFilter, setVaultChainFilter] = useState<string>("all");
+  const [vaultProtocolFilter, setVaultProtocolFilter] = useState<string>("all");
+  const [vaultTokenFilter, setVaultTokenFilter] = useState<string>("all");
 
   // Pull-to-refresh
   const [refreshing, setRefreshing] = useState(false);
@@ -335,6 +338,68 @@ export function OverviewScreen({
     () => [...new Set(data.baseVaults.map((v) => v.id))],
     [data.baseVaults],
   );
+
+  const chainLabel: Record<number, string> = {
+    1: "Ethereum",
+    10: "Optimism",
+    56: "BSC",
+    137: "Polygon",
+    8453: "Base",
+    42161: "Arbitrum",
+  };
+
+  const discoverableVaults = useMemo(
+    () =>
+      data.allVaults.filter(
+        (v) =>
+          v.earn?.isTransactional &&
+          ["USDC", "WETH", "ETH"].includes(v.asset.symbol.toUpperCase()),
+      ),
+    [data.allVaults],
+  );
+
+  const chainOptions = useMemo(
+    () =>
+      Array.from(new Set(discoverableVaults.map((v) => String(v.chain.id)))).sort(
+        (a, b) => Number(a) - Number(b),
+      ),
+    [discoverableVaults],
+  );
+
+  const protocolOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          discoverableVaults
+            .map((v) => v.earn?.protocolName)
+            .filter((x): x is string => !!x),
+        ),
+      ).sort(),
+    [discoverableVaults],
+  );
+
+  const filteredVaults = useMemo(() => {
+    return discoverableVaults.filter((v) => {
+      if (vaultChainFilter !== "all" && String(v.chain.id) !== vaultChainFilter)
+        return false;
+      if (
+        vaultProtocolFilter !== "all" &&
+        (v.earn?.protocolName || "unknown") !== vaultProtocolFilter
+      )
+        return false;
+      if (vaultTokenFilter !== "all") {
+        const token = v.asset.symbol.toUpperCase();
+        const normalized = token === "WETH" ? "ETH" : token;
+        if (normalized !== vaultTokenFilter) return false;
+      }
+      return true;
+    });
+  }, [
+    discoverableVaults,
+    vaultChainFilter,
+    vaultProtocolFilter,
+    vaultTokenFilter,
+  ]);
 
   // Cache-aware flags — show content if real data OR cache is available
   const hasData = !data.userLoading || data.cache !== null;
@@ -692,7 +757,7 @@ export function OverviewScreen({
         </div>
 
         {/* ── Vaults (horizontal scroll, full-bleed) ──── */}
-        {!data.vaultsLoading && data.baseVaults.length > 0 && (
+        {!data.vaultsLoading && discoverableVaults.length > 0 && (
           <motion.section {...sectionReveal(1)} className="mt-10">
             <div className="px-6 sm:px-10">
               <div className="mx-auto w-full max-w-lg">
@@ -701,17 +766,60 @@ export function OverviewScreen({
                     ? "You could also earn across these."
                     : "Here\u2019s what you could be earning."}
                 </p>
+                <p className="mt-1 font-mono text-[10px] text-ink-light/60">
+                  Discover vaults by chain, protocol, and token (ETH/USDC only).
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <select
+                    value={vaultChainFilter}
+                    onChange={(e) => setVaultChainFilter(e.target.value)}
+                    className="rounded-full border border-border bg-cream px-3 py-1 font-mono text-[11px] text-ink-light"
+                  >
+                    <option value="all">All chains</option>
+                    {chainOptions.map((c) => (
+                      <option key={c} value={c}>
+                        {chainLabel[Number(c)] || `Chain ${c}`}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={vaultProtocolFilter}
+                    onChange={(e) => setVaultProtocolFilter(e.target.value)}
+                    className="rounded-full border border-border bg-cream px-3 py-1 font-mono text-[11px] text-ink-light"
+                  >
+                    <option value="all">All protocols</option>
+                    {protocolOptions.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={vaultTokenFilter}
+                    onChange={(e) => setVaultTokenFilter(e.target.value)}
+                    className="rounded-full border border-border bg-cream px-3 py-1 font-mono text-[11px] text-ink-light"
+                  >
+                    <option value="all">All tokens</option>
+                    <option value="USDC">USDC</option>
+                    <option value="ETH">ETH</option>
+                  </select>
+                </div>
               </div>
             </div>
             <div className="relative mt-4">
               <div className="flex gap-3 overflow-x-auto px-6 pb-2 sm:px-10">
-                {data.baseVaults.map((vault) => (
+                {filteredVaults.map((vault) => (
                   <VaultCard
                     key={`${vault.id}-${vault.chain.id}`}
                     vault={vault}
                     onTap={onVaultTap}
                   />
                 ))}
+                {filteredVaults.length === 0 && (
+                  <div className="rounded-xl border border-border px-4 py-3 font-mono text-xs text-ink-light">
+                    No vaults match these filters
+                  </div>
+                )}
                 <div className="w-3 flex-none" />
               </div>
               <div className="pointer-events-none absolute top-0 right-0 bottom-0 w-10 bg-gradient-to-l from-cream to-transparent" />

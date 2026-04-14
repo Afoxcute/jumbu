@@ -18,7 +18,8 @@ type Est = { toAmountMin?: string; toAmount?: string; approvalAddress?: string }
  * @see https://docs.li.fi/composer/recipes/vault-deposits
  */
 export async function tryComposerVaultDeposit(params: {
-  chainId: number;
+  fromChain: number;
+  toChain: number;
   walletAddress: `0x${string}`;
   vaultAddress: `0x${string}`;
   fromToken: `0x${string}`;
@@ -35,8 +36,8 @@ export async function tryComposerVaultDeposit(params: {
   }
 
   const sp = new URLSearchParams({
-    fromChain: String(params.chainId),
-    toChain: String(params.chainId),
+    fromChain: String(params.fromChain),
+    toChain: String(params.toChain),
     fromToken: params.fromToken,
     toToken: params.vaultAddress,
     fromAmount: params.amount,

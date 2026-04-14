@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createPublicClient, http } from "viem";
 import { base } from "viem/chains";
 import { verifyAuth } from "@/lib/auth";
-import { DEFAULT_CHAIN_ID } from "@/lib/constants";
+import { DEFAULT_CHAIN_ID, SUPPORTED_CHAIN_IDS } from "@/lib/constants";
 import { shouldTryEarnComposerDeposit } from "@/lib/lifi/earn-deposit-policy";
 import {
   EARN_DEPOSIT_SUPPORTED_TOKEN_LABEL,
@@ -44,11 +44,19 @@ export async function GET(req: NextRequest) {
   const fromToken = sp.get("fromToken") as `0x${string}` | null;
   const amount = sp.get("amount");
   const walletAddress = sp.get("walletAddress") as `0x${string}` | null;
+  const sourceChain = Number(sp.get("fromChain") || DEFAULT_CHAIN_ID);
+  const targetChain = Number(sp.get("toChain") || DEFAULT_CHAIN_ID);
   if (!vaultAddress || !vaultAssetToken || !fromToken || !amount || !walletAddress) {
     return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
   }
+  if (
+    !SUPPORTED_CHAIN_IDS.includes(sourceChain as (typeof SUPPORTED_CHAIN_IDS)[number]) ||
+    !SUPPORTED_CHAIN_IDS.includes(targetChain as (typeof SUPPORTED_CHAIN_IDS)[number])
+  ) {
+    return NextResponse.json({ error: "Unsupported source or target chain" }, { status: 400 });
+  }
 
-  const earnMeta = await fetchEarnVaultSafe(DEFAULT_CHAIN_ID, vaultAddress);
+  const earnMeta = await fetchEarnVaultSafe(targetChain, vaultAddress);
   if (shouldTryEarnComposerDeposit(earnMeta)) {
     if (!isSupportedEarnDepositTokenAddress(fromToken)) {
       return NextResponse.json(
@@ -60,8 +68,8 @@ export async function GET(req: NextRequest) {
     }
 
     const params = new URLSearchParams({
-      fromChain: String(DEFAULT_CHAIN_ID),
-      toChain: String(DEFAULT_CHAIN_ID),
+      fromChain: String(sourceChain),
+      toChain: String(targetChain),
       fromToken,
       toToken: vaultAddress,
       fromAmount: amount,
@@ -77,28 +85,23 @@ export async function GET(req: NextRequest) {
       error?: string;
     };
     if (ok && q.transactionRequest) {
-      if (fromToken.toLowerCase() !== vaultAssetToken.toLowerCase()) {
-        const out = q.estimate?.toAmountMin || q.estimate?.toAmount;
-        if (out) {
-          return NextResponse.json({ shares: String(out) });
-        }
-      } else {
-        const shares = await client.readContract({
-          address: vaultAddress,
-          abi: erc4626PreviewAbi,
-          functionName: "previewDeposit",
-          args: [BigInt(amount)],
-        });
-        return NextResponse.json({ shares: shares.toString() });
-      }
+      const out = q.estimate?.toAmountMin || q.estimate?.toAmount || amount;
+      return NextResponse.json({ shares: String(out) });
     }
+  }
+
+  if (sourceChain !== DEFAULT_CHAIN_ID || targetChain !== DEFAULT_CHAIN_ID) {
+    return NextResponse.json(
+      { error: "Cross-chain preview requires Earn Composer route availability" },
+      { status: 502 },
+    );
   }
 
   let depositAmount = amount;
   if (fromToken.toLowerCase() !== vaultAssetToken.toLowerCase()) {
     const params = new URLSearchParams({
-      fromChain: String(DEFAULT_CHAIN_ID),
-      toChain: String(DEFAULT_CHAIN_ID),
+      fromChain: String(sourceChain),
+      toChain: String(targetChain),
       fromToken,
       toToken: vaultAssetToken,
       fromAmount: amount,

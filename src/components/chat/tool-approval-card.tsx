@@ -8,6 +8,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import type { DashboardData } from "@/hooks/use-dashboard-data";
 import {
   VAULT_FRIENDLY_NAMES,
+  DEFAULT_CHAIN_ID,
   BASE_TOKENS,
   BASE_TOKEN_DECIMALS,
 } from "@/lib/constants";
@@ -54,9 +55,13 @@ export function ToolApprovalCard({
       parsed = { success: false, error: "Invalid result" };
     }
     const success = parsed?.success;
+    const savedAmount =
+      args.expectedBuyAmount && args.buyToken
+        ? `${args.expectedBuyAmount} ${args.buyToken}`
+        : `${args.sellAmount} ${args.sellToken}`;
     const label =
       toolName === "swap_and_deposit"
-        ? `Swapped ${args.sellAmount} ${args.sellToken} and saved in ${VAULT_FRIENDLY_NAMES[args.vaultId] || args.vaultId}`
+        ? `Swapped ${args.sellAmount} ${args.sellToken} and saved ${savedAmount} in ${VAULT_FRIENDLY_NAMES[args.vaultId] || args.vaultId}`
         : toolName === "swap"
           ? `Converted ${args.sellAmount} ${args.sellToken} to ${args.buyToken}`
           : toolName === "deposit"
@@ -126,6 +131,7 @@ function SwapDepositPending({
   const buyToken = args.buyToken || args.buy_token || "";
   const sellAmount = args.sellAmount || args.sell_amount || "0";
   const expectedBuyAmount = args.expectedBuyAmount || args.expected_buy_amount || "0";
+  const sourceChain = Number(args.fromChain || args.from_chain || DEFAULT_CHAIN_ID);
   const vaultId = args.vaultId || args.vault_id || "";
   const friendlyName = VAULT_FRIENDLY_NAMES[vaultId] || vaultId;
   const vault = dashboardData?.baseVaults.find((v) => v.id === vaultId);
@@ -243,6 +249,8 @@ function SwapDepositPending({
             vaultAssetToken: vault!.asset.address,
             fromToken: sellAddr,
             amount: sellAmountWei,
+            fromChain: sourceChain,
+            toChain: vault!.chain.id,
           }),
         });
         const plan = await planRes.json();
@@ -414,7 +422,8 @@ function PendingApproval({
       await deposit({
         token: tokenAddress as Address,
         amount: parsedAmount,
-        chainId: vault.chain.id,
+        fromChain: DEFAULT_CHAIN_ID,
+        toChain: vault.chain.id,
       });
     } else {
       const position = dashboardData?.positions.find(

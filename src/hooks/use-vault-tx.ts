@@ -30,10 +30,13 @@ export function useVaultDeposit({
     async ({
       token,
       amount,
+      fromChain,
+      toChain,
     }: {
       token: Address;
       amount: bigint;
-      chainId?: number;
+      fromChain?: number;
+      toChain?: number;
     }) => {
       if (!client || !walletAddress) return;
       setStep("processing");
@@ -47,6 +50,8 @@ export function useVaultDeposit({
             vaultAssetToken,
             fromToken: token,
             amount: amount.toString(),
+            fromChain,
+            toChain,
           }),
         });
         const plan = await planRes.json();

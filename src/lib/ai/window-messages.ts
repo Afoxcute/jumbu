@@ -50,9 +50,12 @@ function formatActionFact(toolName: string, input: Record<string, string>, outpu
         : `Swapped ${input.sellAmount} ${input.sellToken} to ${input.buyToken}`;
       break;
     case "swap_and_deposit":
+      const saved = input.expectedBuyAmount && input.buyToken
+        ? `${input.expectedBuyAmount} ${input.buyToken}`
+        : `${input.sellAmount} ${input.sellToken}`;
       line = cancelled
         ? `User cancelled swap+deposit of ${input.sellAmount} ${input.sellToken}`
-        : `Swapped ${input.sellAmount} ${input.sellToken} and saved in ${VAULT_FRIENDLY_NAMES[input.vaultId] || input.vaultId}`;
+        : `Swapped ${input.sellAmount} ${input.sellToken} and saved ${saved} in ${VAULT_FRIENDLY_NAMES[input.vaultId] || input.vaultId}`;
       break;
     case "create_goal":
       line = `Set goal '${input.name}' — ${input.targetAmount} ${input.currency} in ${VAULT_FRIENDLY_NAMES[input.vaultId] || input.vaultId}`;

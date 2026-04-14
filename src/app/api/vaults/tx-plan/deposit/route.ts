@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { encodeFunctionData, erc20Abi } from "viem";
 import { verifyAuth } from "@/lib/auth";
-import { DEFAULT_CHAIN_ID } from "@/lib/constants";
+import { DEFAULT_CHAIN_ID, SUPPORTED_CHAIN_IDS } from "@/lib/constants";
 import { tryComposerVaultDeposit } from "@/lib/lifi/composer-deposit";
 import { shouldTryEarnComposerDeposit } from "@/lib/lifi/earn-deposit-policy";
 import {
@@ -37,14 +37,32 @@ export async function POST(req: NextRequest) {
     vaultAssetToken?: `0x${string}`;
     fromToken?: `0x${string}`;
     amount?: string;
+    fromChain?: number;
+    toChain?: number;
   };
 
-  const { walletAddress, vaultAddress, vaultAssetToken, fromToken, amount } = body;
+  const {
+    walletAddress,
+    vaultAddress,
+    vaultAssetToken,
+    fromToken,
+    amount,
+    fromChain,
+    toChain,
+  } = body;
   if (!walletAddress || !vaultAddress || !vaultAssetToken || !fromToken || !amount) {
     return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
   }
+  const sourceChain = Number(fromChain || DEFAULT_CHAIN_ID);
+  const targetChain = Number(toChain || DEFAULT_CHAIN_ID);
+  if (
+    !SUPPORTED_CHAIN_IDS.includes(sourceChain as (typeof SUPPORTED_CHAIN_IDS)[number]) ||
+    !SUPPORTED_CHAIN_IDS.includes(targetChain as (typeof SUPPORTED_CHAIN_IDS)[number])
+  ) {
+    return NextResponse.json({ error: "Unsupported source or target chain" }, { status: 400 });
+  }
 
-  const earnMeta = await fetchEarnVaultSafe(DEFAULT_CHAIN_ID, vaultAddress);
+  const earnMeta = await fetchEarnVaultSafe(targetChain, vaultAddress);
   if (shouldTryEarnComposerDeposit(earnMeta)) {
     if (!isSupportedEarnDepositTokenAddress(fromToken)) {
       return NextResponse.json(
@@ -56,7 +74,8 @@ export async function POST(req: NextRequest) {
     }
 
     const composer = await tryComposerVaultDeposit({
-      chainId: DEFAULT_CHAIN_ID,
+      fromChain: sourceChain,
+      toChain: targetChain,
       walletAddress,
       vaultAddress,
       fromToken,
@@ -67,13 +86,20 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  if (sourceChain !== DEFAULT_CHAIN_ID || targetChain !== DEFAULT_CHAIN_ID) {
+    return NextResponse.json(
+      { error: "Cross-chain deposits require Earn Composer route availability" },
+      { status: 502 },
+    );
+  }
+
   const calls: Array<{ to: `0x${string}`; data: `0x${string}`; value?: string }> = [];
   let depositAmount = amount;
 
   if (fromToken.toLowerCase() !== vaultAssetToken.toLowerCase()) {
     const params = new URLSearchParams({
-      fromChain: String(DEFAULT_CHAIN_ID),
-      toChain: String(DEFAULT_CHAIN_ID),
+      fromChain: String(sourceChain),
+      toChain: String(targetChain),
       fromToken,
       toToken: vaultAssetToken,
       fromAmount: amount,

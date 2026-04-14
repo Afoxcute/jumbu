@@ -9,7 +9,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useVaultDeposit } from "@/hooks/use-vault-tx";
 import { formatUsd, formatApy, formatShares, getPrice } from "@/lib/format";
 import { logActivity } from "@/lib/activity";
-import { VAULT_FRIENDLY_NAMES, TOKEN_ADDRESSES } from "@/lib/constants";
+import { DEFAULT_CHAIN_ID, SUPPORTED_CHAIN_IDS, VAULT_FRIENDLY_NAMES, TOKEN_ADDRESSES } from "@/lib/constants";
 import { useChatSheet } from "@/contexts/chat-context";
 import { isSupportedEarnDepositTokenSymbol } from "@/lib/lifi/earn-deposit-tokens";
 import type { VaultStatsItem } from "@/lib/vaults/types";
@@ -34,7 +34,14 @@ export function DepositSheet({
   const [sliderValue, setSliderValue] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState("");
+  const [sourceChain, setSourceChain] = useState<number>(DEFAULT_CHAIN_ID);
   const isEarnDepositVault = vault.earn?.isTransactional !== false;
+  const targetChain = vault.chain.id;
+  const chainLabel: Record<number, string> = {
+    1: "Ethereum",
+    8453: "Base",
+    42161: "Arbitrum",
+  };
 
   // Token selector: default to vault's native token, fall back to USDC if user has none
   const nativeSymbol = vault.asset.symbol;
@@ -80,11 +87,13 @@ export function DepositSheet({
     : 18;
   const vaultAddress = vault.contracts.vaultAddress as Address;
 
-  const tokenBalance = Number(
-    walletAssets?.find((a) => a.symbol === selectedToken)?.balance ?? "0",
-  );
+  const tokenBalance = sourceChain === DEFAULT_CHAIN_ID
+    ? Number(walletAssets?.find((a) => a.symbol === selectedToken)?.balance ?? "0")
+    : 0;
 
-  const amount = isEditing ? Number(editValue) || 0 : (sliderValue / 100) * tokenBalance;
+  const amount = isEditing
+    ? Number(editValue) || 0
+    : (sliderValue / 100) * tokenBalance;
 
   const parsedAmount = useMemo(() => {
     if (amount <= 0) return 0n;
@@ -108,12 +117,14 @@ export function DepositSheet({
       vaultAssetToken: vault.asset.address,
       fromToken: tokenAddress,
       amount: parsedAmount.toString(),
+      fromChain: String(sourceChain),
+      toChain: String(targetChain),
     });
     fetch(`/api/vaults/preview/deposit?${params}`)
       .then((res) => res.json())
       .then((json) => setPreviewShares(json.shares ? BigInt(json.shares) : 0n))
       .catch(() => setPreviewShares(0n));
-  }, [walletAddress, parsedAmount, vaultAddress, vault.asset.address, tokenAddress]);
+  }, [walletAddress, parsedAmount, vaultAddress, vault.asset.address, tokenAddress, sourceChain, targetChain]);
 
   const { deposit, step, isLoading, isSuccess, hash, reset } = useVaultDeposit({
     vault: vaultAddress,
@@ -142,9 +153,10 @@ export function DepositSheet({
     await deposit({
       token: tokenAddress,
       amount: parsedAmount,
-      chainId: vault.chain.id,
+      fromChain: sourceChain,
+      toChain: targetChain,
     });
-  }, [canDeposit, deposit, tokenAddress, parsedAmount, vault.chain.id]);
+  }, [canDeposit, deposit, tokenAddress, parsedAmount, sourceChain, targetChain]);
 
   // Sync step to chat bar context — use refs to avoid infinite loop
   const { setActiveSheet } = useChatSheet();
@@ -265,6 +277,11 @@ export function DepositSheet({
               </svg>
             </div>
             <p className="font-display text-2xl text-ink">Saved!</p>
+            <p className="font-mono text-xs text-ink-light">
+              {amount > 0
+                ? `${amount.toLocaleString("en-US", { maximumFractionDigits: 4 })} ${selectedToken}`
+                : `0 ${selectedToken}`}
+            </p>
             {hash && (
               <a
                 href={`https://basescan.org/tx/${hash}`}
@@ -279,6 +296,27 @@ export function DepositSheet({
         ) : (
           <>
             {/* Token selector — show when multiple tokens available */}
+            <div className="mt-4 flex gap-2">
+              {SUPPORTED_CHAIN_IDS.map((cid) => (
+                <button
+                  key={cid}
+                  onClick={() => {
+                    setSourceChain(cid);
+                    setSliderValue(0);
+                    setIsEditing(false);
+                  }}
+                  className={`rounded-full px-3 py-1 font-mono text-[11px] transition-colors duration-200 ${
+                    sourceChain === cid ? "bg-ink text-cream" : "bg-cream-dark text-ink-light"
+                  }`}
+                >
+                  {chainLabel[cid] || `Chain ${cid}`}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 font-mono text-[10px] text-ink-light/60">
+              Depositing to {chainLabel[targetChain] || `Chain ${targetChain}`}
+              {sourceChain !== DEFAULT_CHAIN_ID ? " · enter amount manually for cross-chain" : ""}
+            </p>
             {availableTokens.length > 1 && (
               <div className="mt-4 flex gap-2">
                 {availableTokens.map((sym) => (
@@ -350,7 +388,7 @@ export function DepositSheet({
                   setIsEditing(false);
                   setSliderValue(Number(e.target.value));
                 }}
-                disabled={isLoading || tokenBalance === 0}
+                disabled={isLoading || tokenBalance === 0 || sourceChain !== DEFAULT_CHAIN_ID}
                 className="slider-sage w-full"
               />
               <div className="mt-2 flex justify-between">
