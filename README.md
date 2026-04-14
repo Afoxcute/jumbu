@@ -4,7 +4,7 @@
 
 jumbu is a mobile savings app that lets anyone earn yield on their money without understanding crypto. Powered by LI.FI routing and vault adapters, it replaces the complexity of DeFi with a single AI chat interface. Just tell jumbu what you're saving for, and it handles everything.
 
-**[Repository](https://github.com/Afoxcute/jumbu)**
+**[Repository](https://github.com/Afoxcute/jumbu)** · **[Demo Video](https://drive.google.com/drive/folders/1LR1oBgrgNbCWESrE340Mbofsl2sy-ZDj?usp=sharing)**
 
 ---
 
