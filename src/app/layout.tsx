@@ -30,10 +30,11 @@ const showDesktopBlocker =
   process.env.NEXT_PUBLIC_DISABLE_DESKTOP_BLOCKER !== "1";
 
 export const metadata: Metadata = {
+  applicationName: "jumbu",
   title: "jumbu — Onchain Savings Made Easy",
   description:
     "Earn on your savings with smart LI.FI routing. No fees. Withdraw anytime.",
-  manifest: "/manifest.json",
+  manifest: "/manifest.webmanifest",
   icons: {
     icon: "/jumbu.png",
     apple: "/jumbu.png",

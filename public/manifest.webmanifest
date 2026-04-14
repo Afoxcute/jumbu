@@ -1,0 +1,19 @@
+{
+  "id": "/app?source=pwa-jumbu",
+  "name": "jumbu",
+  "short_name": "jumbu",
+  "description": "Onchain savings made easy.",
+  "start_url": "/app?source=pwa-jumbu",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#FFFEF2",
+  "background_color": "#FFFEF2",
+  "icons": [
+    {
+      "src": "/jumbu.png",
+      "sizes": "480x480",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ]
+}
