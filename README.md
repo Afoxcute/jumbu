@@ -13,15 +13,16 @@ jumbu is a mobile savings app that lets anyone earn yield on their money without
 1. **Sign up with email or Google.** No wallet, no seed phrases. A gasless smart account (ERC-4337) is created behind the scenes. All transactions are gas-sponsored — users never pay gas fees.
 2. **Fund your account** via MoonPay (card, Apple Pay, Google Pay) or receive tokens from an external wallet.
 3. **Talk to the AI.** Say "I want to save for a trip to Japan" and the AI checks rates, recommends the best vault, sets a savings goal, and presents a one-tap deposit confirmation.
-4. **Earn automatically.** LI.FI routes deposits into vault assets and jumbu handles the vault transaction flow. Zero management fees, zero performance fees.
-5. **Withdraw anytime.** No lock-ups, no penalties.
+4. **Earn automatically.** LI.FI Earn Data API discovers vaults and LI.FI Composer executes deposit flows with one user confirmation.
+5. **Withdraw anytime.** LI.FI Earn + Composer is used for redeem flows where supported, with ERC-4626 fallback for compatibility.
 
 ## Features
 
 - **AI savings advisor** — Conversational chat with voice input. The AI can check rates, deposit, withdraw, set goals, and narrate your activity in plain English.
 - **Gasless transactions** — All on-chain transactions are gas-sponsored via Pimlico. Users never need ETH for gas.
 - **Savings goals** — Set targets like "Japan trip: $5,000" and track progress visually on each position card.
-- **Cross-asset deposits** — Deposit USDC into any vault (yoBTC, yoEUR, etc). The YO SDK handles token swaps automatically.
+- **LI.FI Earn-powered deposits** — Save using **USDC or ETH only** as source tokens, with Composer handling swap/bridge/deposit routing.
+- **LI.FI Earn-powered withdrawals** — Withdraw uses Composer when vaults are `isRedeemable`, with ERC-4626 fallback when not available.
 - **Send and receive** — Transfer tokens directly from the app with address validation and token selection.
 - **MoonPay on-ramp** — Buy crypto with a card without leaving the app.
 - **Activity narration** — AI summarizes your recent transactions in 2-3 sentences.
@@ -30,7 +31,7 @@ jumbu is a mobile savings app that lets anyone earn yield on their money without
 
 ## LI.FI + vault integration
 
-jumbu uses LI.FI quotes/routes for swap and bridge execution, then submits ERC-4626 vault actions through Privy smart wallets.
+jumbu now uses LI.FI Earn Data API for discovery/capabilities and LI.FI Composer for execution (deposit + withdraw), with safe ERC-4626 fallback paths.
 
 **Supported vaults:**
 
@@ -38,16 +39,32 @@ jumbu uses LI.FI quotes/routes for swap and bridge execution, then submits ERC-4
 |-------|---------------|-----------------|
 | yoUSD | Dollar Savings | USDC |
 | yoETH | Ether Savings | WETH |
-| yoBTC | Bitcoin Savings | cbBTC |
-| yoEUR | Euro Savings | EURC |
+
+In addition to curated vaults, the app discovers transactional Earn vaults dynamically across supported chains and enriches APY/TVL/protocol metadata from `earn.li.fi`.
 
 **Execution flow:**
 
-- LI.FI quote API is used for route discovery and transaction request generation.
-- Server tx-plan endpoints compose route calls with ERC-4626 `deposit` / `redeem` calls.
+- **Deposit:** server tries Earn Composer first (`toToken = vault address`) and falls back to ERC-4626 deposit if needed.
+- **Withdraw:** server tries Earn Composer first (`fromToken = vault address`) and falls back to ERC-4626 redeem if needed.
+- LI.FI quote API is used for route discovery and transaction request generation in both flows.
 - UI and chat execute plans via Privy's `useSmartWallets().client.sendTransaction()`.
+- Cross-chain flows are supported through Composer paths; fallback paths remain same-chain.
+- Deposit source token policy is explicitly restricted to **USDC or ETH only**.
 
 All transactions are executed through Privy's `useSmartWallets().client.sendTransaction()` as batched UserOperations (ERC-4337).
+
+## Recent implementation updates
+
+- Added Earn API clients/types/config and proxy routes for vaults, chains, protocols, and portfolio positions.
+- Added enriched vault catalog API (`/api/vaults/catalog`) with dynamic Earn metadata merge and curated fallback.
+- Implemented Earn Composer deposit in `/api/vaults/tx-plan/deposit` and `/api/vaults/preview/deposit`.
+- Implemented Earn Composer withdraw in `/api/vaults/tx-plan/redeem` and `/api/vaults/preview/redeem`.
+- Restricted save/deposit entry points (UI + chat + API) to USDC/ETH source tokens.
+- Updated wallet snapshot/display to keep token decimals and show balances even when tiny or zero.
+- Updated deposit/withdraw success messaging and activity recap to show explicit amounts/tokens.
+- Removed legacy cbBTC/yoBTC surface traces from dashboard browsing and branding text paths.
+- Replaced app branding assets/metadata with `public/jumbu.png` (logo, favicon, launch metadata).
+- Added Netlify runtime setup (`netlify.toml`, build scripts, deploy/build docs).
 
 ## AI chat
 
